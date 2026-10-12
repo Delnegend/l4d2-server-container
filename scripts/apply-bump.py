@@ -70,6 +70,8 @@ def main() -> None:
     parser.add_argument("--plugins-ref")
     parser.add_argument("--l4dtoolz-version")
     parser.add_argument("--l4dtoolz-build")
+    parser.add_argument("--block-logon-release")
+    parser.add_argument("--block-logon-asset")
     args = parser.parse_args()
 
     changed = False
@@ -84,6 +86,14 @@ def main() -> None:
     if args.plugins_ref:
         changed |= set_dockerfile_arg("L4D_PLUGINS_REF", args.plugins_ref)
         changed |= set_doc_table(["L4D_PLUGINS_REF"], [args.plugins_ref])
+    if args.block_logon_release or args.block_logon_asset:
+        if not (args.block_logon_release and args.block_logon_asset):
+            raise SystemExit("apply-bump: the bypass needs both --block-logon-release and --block-logon-asset")
+        changed |= set_dockerfile_arg("BLOCK_LOGON_RELEASE", args.block_logon_release)
+        changed |= set_dockerfile_arg("BLOCK_LOGON_ASSET", args.block_logon_asset)
+        changed |= set_doc_table(
+            ["BLOCK_LOGON_RELEASE", "BLOCK_LOGON_ASSET"], [args.block_logon_release, args.block_logon_asset]
+        )
     if args.game_manifest:
         changed |= set_dockerfile_arg("GAME_MANIFEST", args.game_manifest)
         changed |= set_doc_table(["GAME_MANIFEST"], [args.game_manifest])

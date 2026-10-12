@@ -6,7 +6,7 @@ $GITHUB_OUTPUT. Runnable by hand for the same answer:
 
     GITHUB_TOKEN=$(gh auth token) scripts/resolve-upstream.py
 
-Four things are pinned by an ARG in the Dockerfile, and this is what says
+Five things are pinned by an ARG in the Dockerfile, and this is what says
 whether each one is stale:
 
   game_manifest        the public manifest id of depot 222861 of app 222860 -
@@ -22,6 +22,11 @@ whether each one is stale:
                        release that only ships the rolling -main.zip cannot be
                        pinned, so it is skipped.
   plugins_ref          head commit of fbef0102/L4D1_2-Plugins.
+  block_logon_release,
+  block_logon_asset    the newest blueblur0730/modified-plugins release that
+                       ships the SourceMod 1.12 bypass zip the Dockerfile
+                       unpacks. 1.13-only releases cannot be pinned, so they
+                       are skipped.
 
 MetaMod and SourceMod are reported and never bumped: the Dockerfile resolves
 both to the newest build on SOURCEMOD_BRANCH at build time, so a new drop needs
@@ -49,11 +54,18 @@ GAME_DEPOT = 222861
 LAUNCHER_DEPOT = 222863
 PLUGINS_REPO = "fbef0102/L4D1_2-Plugins"
 L4DTOOLZ_REPO = "lakwsh/l4dtoolz"
+BLOCK_LOGON_REPO = "blueblur0730/modified-plugins"
 
 # The build downloads
 # .../releases/download/${L4DTOOLZ_VERSION}/l4dtoolz-${L4DTOOLZ_VERSION}-${L4DTOOLZ_BUILD}.zip,
 # so the asset name and the release tag have to be the same version.
 L4DTOOLZ_ASSET = re.compile(r"^l4dtoolz-(?P<version>.+?)-(?P<build>\d+)\.zip$")
+
+# The build downloads
+# .../releases/download/${BLOCK_LOGON_RELEASE}/${BLOCK_LOGON_ASSET} and unpacks
+# the bypass plugin from it, so the tag and the asset date have to agree. Only
+# the sm-1.12 asset is pinnable: the image builds SourceMod 1.12.
+BLOCK_LOGON_ASSET = re.compile(r"^modified-plugins-sm-1\.12-(?P<date>\d{4}-\d{2}-\d{2})\.zip$")
 
 TIMEOUT = 30
 
@@ -125,6 +137,28 @@ def plugins_head() -> str:
     return commits[0]["sha"]
 
 
+def latest_block_logon() -> tuple[str, str]:
+    """Newest bypass release carrying a pinnable 1.12 asset, as (tag, asset).
+
+    Releases are walked newest first and the first pinnable one wins, so a
+    release that ships no sm-1.12 zip does not hide an older pinnable one.
+    """
+    releases = json.loads(
+        fetch(f"https://api.github.com/repos/{BLOCK_LOGON_REPO}/releases?per_page=20")
+    )
+    for release in releases:
+        if release.get("draft") or release.get("prerelease"):
+            continue
+        tag = release["tag_name"]
+        for asset in release.get("assets", []):
+            match = BLOCK_LOGON_ASSET.match(asset["name"])
+            if match and tag == f"release-{match.group('date')}":
+                return tag, asset["name"]
+    raise SystemExit(
+        "resolve-upstream: no modified-plugins release ships a modified-plugins-sm-1.12-<date>.zip"
+    )
+
+
 def depot_manifest(depot: int) -> str:
     """Public manifest id of one depot of the dedicated server app.
 
@@ -146,6 +180,7 @@ def main() -> None:
 
     version, build = latest_l4dtoolz()
     ref = plugins_head()
+    block_tag, block_asset = latest_block_logon()
     game = depot_manifest(GAME_DEPOT)
     launcher = depot_manifest(LAUNCHER_DEPOT)
 
@@ -153,6 +188,8 @@ def main() -> None:
         "L4DTOOLZ_VERSION": arg("L4DTOOLZ_VERSION"),
         "L4DTOOLZ_BUILD": arg("L4DTOOLZ_BUILD"),
         "L4D_PLUGINS_REF": arg("L4D_PLUGINS_REF"),
+        "BLOCK_LOGON_RELEASE": arg("BLOCK_LOGON_RELEASE"),
+        "BLOCK_LOGON_ASSET": arg("BLOCK_LOGON_ASSET"),
         "GAME_MANIFEST": arg("GAME_MANIFEST"),
         "LAUNCHER_MANIFEST": arg("LAUNCHER_MANIFEST"),
     }
@@ -160,6 +197,8 @@ def main() -> None:
         "L4DTOOLZ_VERSION": version,
         "L4DTOOLZ_BUILD": build,
         "L4D_PLUGINS_REF": ref,
+        "BLOCK_LOGON_RELEASE": block_tag,
+        "BLOCK_LOGON_ASSET": block_asset,
         "GAME_MANIFEST": game,
         "LAUNCHER_MANIFEST": launcher,
     }
@@ -176,6 +215,8 @@ def main() -> None:
         "l4dtoolz_version": version,
         "l4dtoolz_build": build,
         "plugins_ref": ref,
+        "block_logon_release": block_tag,
+        "block_logon_asset": block_asset,
         "sourcemod_branch": branch,
         "mmsource_drop": alliedmods_drop("mms.alliedmods.net", "mmsdrop", "mmsource", branch),
         "sourcemod_drop": alliedmods_drop("sm.alliedmods.net", "smdrop", "sourcemod", branch),

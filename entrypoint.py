@@ -37,6 +37,13 @@ EIGHT_PLAYER_FILES = {
     "l4dmultislots.phrases.txt",
 }
 
+# Unlinked from both modded modes when BLOCK_NO_STEAM_LOGON is off; vanilla
+# mode unlinks the whole overlay anyway.
+BLOCK_LOGON_FILES = {
+    "l4d2_block_no_steam_logon.smx",
+    "l4d2_block_no_steam_logon.txt",
+}
+
 DEFAULT_CONFIG_VALUES = {
     "SERVER_NAME": "Left 4 Dead 2 Dedicated Server",
     "RCON_PASSWORD": "ChangeMeRcon123",
@@ -283,6 +290,7 @@ def setup_mods(
     overlay_dir: Path,
     game_data_dir: Path,
     admin_users: str,
+    block_no_steam_logon: bool,
 ) -> None:
     addons_dir = game_data_dir / "addons"
     overlay_addons = overlay_dir / "left4dead2" / "addons"
@@ -302,21 +310,24 @@ def setup_mods(
         log(
             "SERVER_MODE is 'sourcemod': running 4-player server with SourceMod and admin tools."
         )
-        # Clean up any 8-player symlinks from a previous run
-        if addons_dir.is_dir():
-            for item in list(addons_dir.rglob("*")):
-                if item.is_symlink() and item.name in EIGHT_PLAYER_FILES:
-                    target = os.path.realpath(item)
-                    if target.startswith(overlay_prefix):
-                        item.unlink()
-        if overlay_addons.is_dir():
-            link_overlay_tree(
-                overlay_addons, addons_dir, exclude_names=EIGHT_PLAYER_FILES
-            )
-    elif server_mode == "8players":
+    else:
         log("SERVER_MODE is '8players': running 8-player server with full mod stack.")
-        if overlay_addons.is_dir():
-            link_overlay_tree(overlay_addons, addons_dir)
+
+    exclude = set(EIGHT_PLAYER_FILES) if server_mode == "sourcemod" else set()
+    if not block_no_steam_logon:
+        log("BLOCK_NO_STEAM_LOGON is off: leaving the No-Steam-logon bypass unlinked.")
+        exclude |= BLOCK_LOGON_FILES
+    # Clean up symlinks excluded by the mode or the toggle from a previous run
+    if exclude and addons_dir.is_dir():
+        for item in list(addons_dir.rglob("*")):
+            if item.is_symlink() and item.name in exclude:
+                target = os.path.realpath(item)
+                if target.startswith(overlay_prefix):
+                    item.unlink()
+    if overlay_addons.is_dir():
+        link_overlay_tree(overlay_addons, addons_dir, exclude_names=exclude)
+
+    if server_mode == "8players":
         overlay_cfg = overlay_dir / "left4dead2" / "cfg"
         if overlay_cfg.is_dir():
             sm_cfg = game_data_dir / "cfg" / "sourcemod"
@@ -491,6 +502,8 @@ def main() -> None:
     sv_consistency = os.environ.get("SV_CONSISTENCY", "0")
     sv_pure = os.environ.get("SV_PURE", "0")
     admin_users = os.environ.get("ADMIN_USERS", "")
+    block_logon_raw = os.environ.get("BLOCK_NO_STEAM_LOGON", "1").strip().lower()
+    block_no_steam_logon = block_logon_raw not in ("0", "false", "no", "off")
     extra_args = os.environ.get("EXTRA_ARGS", "")
 
     # Validation
@@ -541,7 +554,9 @@ def main() -> None:
     game_data_dir = setup_game_files(GAME_DIR, DATA_DIR)
 
     # Mod stack
-    setup_mods(server_mode, OVERLAY_DIR, game_data_dir, admin_users)
+    setup_mods(
+        server_mode, OVERLAY_DIR, game_data_dir, admin_users, block_no_steam_logon
+    )
 
     # Check executable
     srcds_run = DATA_DIR / "srcds_run"
@@ -561,6 +576,7 @@ def main() -> None:
     print("==================================================")
     log(f"Mode: {server_mode}")
     log(f"Players: {max_players} (SERVER_MODE={server_mode})")
+    log(f"No-Steam-logon bypass: {'on' if block_no_steam_logon else 'off'}")
     log(
         f"Steam group: {steam_group_id if steam_group_id else '<none>'} (exclusive: {steam_group_exclusive})"
     )

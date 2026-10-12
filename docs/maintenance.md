@@ -37,7 +37,7 @@ Changing the manifest is what triggers the next download.
 
 ## Automated update checks
 
-`.github/workflows/updates.yaml` runs once a day and compares four pins
+`.github/workflows/updates.yaml` runs once a day and compares five pins
 against upstream with `scripts/resolve-upstream.py`:
 
 | Pin | Upstream signal |
@@ -46,6 +46,7 @@ against upstream with `scripts/resolve-upstream.py`:
 | `LAUNCHER_MANIFEST` | public manifest id of depot 222863, which carries `srcds_run` |
 | `L4DTOOLZ_VERSION` / `L4DTOOLZ_BUILD` | newest stable [lakwsh/l4dtoolz](https://github.com/lakwsh/l4dtoolz) release shipping a `l4dtoolz-<version>-<build>.zip` |
 | `L4D_PLUGINS_REF` | head commit of [fbef0102/L4D1_2-Plugins](https://github.com/fbef0102/L4D1_2-Plugins) |
+| `BLOCK_LOGON_RELEASE` / `BLOCK_LOGON_ASSET` | newest [modified-plugins](https://github.com/blueblur0730/modified-plugins) release shipping a `modified-plugins-sm-1.12-<date>.zip` |
 
 If any of them is stale, the workflow opens **one** pull request that rewrites
 the `ARG` defaults and the matching rows in
@@ -121,6 +122,20 @@ Both arguments must match a real release asset; the filename the build expects
 is `l4dtoolz-<version>-<build>.zip`. A release that ships only the rolling
 `l4dtoolz-<version>-main.zip` cannot be pinned and is skipped by the update
 workflow — the current pin is in the Dockerfile as `ARG L4DTOOLZ_VERSION`.
+
+## Updating the No-Steam-logon bypass
+
+Pinned by release tag and asset name, because the asset name carries the date:
+
+```bash
+podman build \
+  --build-arg BLOCK_LOGON_RELEASE=<tag> --build-arg BLOCK_LOGON_ASSET=<file> \
+  -t localhost/l4d2:dev .
+```
+
+The asset must be the `sm-1.12` one: the image builds SourceMod 1.12, and a
+plugin compiled against 1.13 will not load on it.
+
 
 ## Releases and tags
 

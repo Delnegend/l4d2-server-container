@@ -1,9 +1,10 @@
 name: Upstream updates
 
-# One check a day against the three things this repository pins: Valve's depot
-# manifest, l4dtoolz's newest stable release, and the head of the 5+ plugin
-# repo. Anything stale becomes one pull request that rewrites the Dockerfile
-# ARGs and the architecture table, and merges itself once CI is green.
+# One check a day against the four things this repository pins: Valve's depot
+# manifests, l4dtoolz's newest stable release, the head of the 5+ plugin repo,
+# and the newest No-Steam-logon bypass release. Anything stale becomes one pull
+# request that rewrites the Dockerfile ARGs and the architecture table, and
+# merges itself once CI is green.
 #
 # MetaMod and SourceMod are deliberately not pinned - the Dockerfile resolves
 # both to the newest build on SOURCEMOD_BRANCH - so they appear in the report
@@ -39,6 +40,8 @@ jobs:
       l4dtoolz_version: ${{ steps.upstream.outputs.l4dtoolz_version }}
       l4dtoolz_build: ${{ steps.upstream.outputs.l4dtoolz_build }}
       plugins_ref: ${{ steps.upstream.outputs.plugins_ref }}
+      block_logon_release: ${{ steps.upstream.outputs.block_logon_release }}
+      block_logon_asset: ${{ steps.upstream.outputs.block_logon_asset }}
       sourcemod_branch: ${{ steps.upstream.outputs.sourcemod_branch }}
       mmsource_drop: ${{ steps.upstream.outputs.mmsource_drop }}
       sourcemod_drop: ${{ steps.upstream.outputs.sourcemod_drop }}
@@ -69,7 +72,9 @@ jobs:
             --launcher-manifest '${{ needs.resolve.outputs.launcher_manifest }}' \
             --l4dtoolz-version '${{ needs.resolve.outputs.l4dtoolz_version }}' \
             --l4dtoolz-build '${{ needs.resolve.outputs.l4dtoolz_build }}' \
-            --plugins-ref '${{ needs.resolve.outputs.plugins_ref }}'
+            --plugins-ref '${{ needs.resolve.outputs.plugins_ref }}' \
+            --block-logon-release '${{ needs.resolve.outputs.block_logon_release }}' \
+            --block-logon-asset '${{ needs.resolve.outputs.block_logon_asset }}'
 
       - name: Open the pull request and queue it for merge
         env:
@@ -112,6 +117,8 @@ jobs:
             `l4dtoolz-<version>-<build>.zip`.
           - **5+ plugins** — the head commit of
             [fbef0102/L4D1_2-Plugins](https://github.com/fbef0102/L4D1_2-Plugins).
+          - **No-Steam-logon bypass** — the newest release shipping a
+            `modified-plugins-sm-1.12-<date>.zip`.
 
           `just verify` downloads both pinned manifests, boots the server and
           checks the plugin stack, so a green `Check (just verify)` is the

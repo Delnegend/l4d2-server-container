@@ -40,6 +40,8 @@ ARG L4DTOOLZ_BUILD=2155
 ARG LEFT4DHOOKS_SHA256=1536aac340787fe6d740a7ac2696c64a3b0fda160e57644a887f5b5481e12675
 ARG L4D_PLUGINS_REF=97c5687cb0cf2ddc24ce242dd1cc35640e57d236
 ARG L4D_PLUGINS_REPO=https://raw.githubusercontent.com/fbef0102/L4D1_2-Plugins
+ARG BLOCK_LOGON_RELEASE=release-2026-09-06
+ARG BLOCK_LOGON_ASSET=modified-plugins-sm-1.12-2026-09-06.zip
 
 # ===========================================================================
 # fetch - one-shot downloader stage, never published
@@ -134,6 +136,8 @@ ARG L4DTOOLZ_BUILD
 ARG LEFT4DHOOKS_SHA256
 ARG L4D_PLUGINS_REF
 ARG L4D_PLUGINS_REPO
+ARG BLOCK_LOGON_RELEASE
+ARG BLOCK_LOGON_ASSET
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -192,6 +196,21 @@ RUN set -eux; \
     fetch gamedata/l4d_CreateSurvivorBot.txt    && mv /tmp/dl "${sm}/gamedata/l4d_CreateSurvivorBot.txt"; \
     fetch translations/l4dmultislots.phrases.txt && mv /tmp/dl "${sm}/translations/l4dmultislots.phrases.txt"; \
     rm -rf /tmp/sourcemod /tmp/left4dhooks.zip /tmp/dl
+
+# l4d2_block_no_steam_logon - bypasses "No Steam logon" drops (toggle: BLOCK_NO_STEAM_LOGON)
+RUN set -eux; \
+    sm=/opt/l4d2-overlay/left4dead2/addons/sourcemod; \
+    curl -fsSL -o /tmp/bnsl.zip \
+        "https://github.com/blueblur0730/modified-plugins/releases/download/${BLOCK_LOGON_RELEASE}/${BLOCK_LOGON_ASSET}"; \
+    unzip -q -o /tmp/bnsl.zip \
+        "build/source/l4d2_block_no_steam_logon/plugins/l4d2_block_no_steam_logon.smx" \
+        "build/source/l4d2_block_no_steam_logon/gamedata/l4d2_block_no_steam_logon.txt" \
+        -d /tmp/bnsl; \
+    install -m 0644 /tmp/bnsl/build/source/l4d2_block_no_steam_logon/plugins/l4d2_block_no_steam_logon.smx \
+        "${sm}/plugins/l4d2_block_no_steam_logon.smx"; \
+    install -m 0644 /tmp/bnsl/build/source/l4d2_block_no_steam_logon/gamedata/l4d2_block_no_steam_logon.txt \
+        "${sm}/gamedata/l4d2_block_no_steam_logon.txt"; \
+    rm -rf /tmp/bnsl /tmp/bnsl.zip
 
 # Multi-Colors include
 RUN set -eux; \

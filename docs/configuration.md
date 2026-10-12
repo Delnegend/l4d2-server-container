@@ -24,6 +24,7 @@ Copy `.env.example` to `.env` and edit it. Compose passes each of these through.
 | `SV_CONSISTENCY` | `0` | `sv_consistency`. Must stay `0` for more than four survivors. |
 | `SV_PURE` | `0` | `sv_pure` |
 | `ADMIN_USERS` | `""` | Comma-separated SteamIDs granted root admin in SourceMod (e.g. `STEAM_1:0:12345678, 76561198012345678`). |
+| `BLOCK_NO_STEAM_LOGON` | `1` | Loads the plugin that stops the engine dropping players with "No Steam logon". `0` leaves it unlinked; SourceMod modes only, `vanilla` never loads plugins. |
 | `EXTRA_ARGS` | `""` | Appended to the `srcds_run` command line. Certain flags are rejected at startup — see [troubleshooting.md](troubleshooting.md#rejected-flags). |
 
 ### Admin users

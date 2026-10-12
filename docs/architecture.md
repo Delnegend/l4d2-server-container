@@ -20,7 +20,7 @@ graph TD
 |---|---|---|
 | `fetch` | no | One-shot DepotDownloader stage that downloads the pinned Steam depots into `/opt/l4d2`. |
 | `base` | no | 32-bit runtime libraries, `steam` user, and the clean vanilla game install baked in at `/opt/l4d2`. |
-| `mods` | no | Stages the 8-player mod overlay (MetaMod, SourceMod 1.12, l4dtoolz, Left 4 DHooks, 5+ plugins) at `/opt/l4d2-overlay`. |
+| `mods` | no | Stages the 8-player mod overlay (MetaMod, SourceMod 1.12, l4dtoolz, Left 4 DHooks, 5+ plugins, No-Steam-logon bypass) at `/opt/l4d2-overlay`. |
 | `vanilla` | no | Inherits from `base`, adds entrypoint and configuration template (clean 4-player server). Deployable via `--target vanilla`. |
 | `server` | **yes** | Inherits from `vanilla`, adds the staged mod overlay from `mods` and `server_custom.cfg` (published default 8-player server). |
 
@@ -101,6 +101,7 @@ manifest chunks are fetched concurrently. The tool's own default is 8.
 | `L4DTOOLZ_VERSION` / `L4DTOOLZ_BUILD` | `2.5.1` / `2155` | Which l4dtoolz release goes into the overlay. |
 | `LEFT4DHOOKS_SHA256` | `1536aac3…` | Checksum the vendored `assets/left4dhooks.zip` against. The build fails if it does not match. |
 | `L4D_PLUGINS_REF` | `97c5687c…` | Commit of [fbef0102/L4D1_2-Plugins](https://github.com/fbef0102/L4D1_2-Plugins) the 5+ plugins are fetched from, so a rebuild gets the same bytes. |
+| `BLOCK_LOGON_RELEASE` / `BLOCK_LOGON_ASSET` | `release-…` / `modified…` | Which [blueblur0730/modified-plugins](https://github.com/blueblur0730/modified-plugins) release the No-Steam-logon bypass comes from, and which SourceMod-1.12 asset the build unpacks. |
 | `DEPOT_DOWNLOADER_VERSION` | `3.4.0` | DepotDownloader release to ship in the image. |
 | `SERVER_VERSION` | `dev` | Stamped as `org.opencontainers.image.version`. |
 | `DEBIAN_IMAGE` | `debian:trixie-slim` | Base distribution. |
@@ -110,8 +111,9 @@ is 1.13, and the 1.11 line is kept as a legacy branch. It is also what the
 5+/8-player plugins are compiled against; see
 [eight-players.md](eight-players.md).
 
-`GAME_MANIFEST`, `LAUNCHER_MANIFEST`, `L4DTOOLZ_VERSION`, `L4DTOOLZ_BUILD` and
-`L4D_PLUGINS_REF` are the five the update workflow rewrites; see
+`GAME_MANIFEST`, `LAUNCHER_MANIFEST`, `L4DTOOLZ_VERSION`, `L4DTOOLZ_BUILD`,
+`L4D_PLUGINS_REF`, `BLOCK_LOGON_RELEASE` and `BLOCK_LOGON_ASSET` are the seven
+the update workflow rewrites; see
 [maintenance.md](maintenance.md#automated-update-checks).
 
 ## The install and the volume
