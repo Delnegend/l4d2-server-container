@@ -57,6 +57,14 @@ downloads both pinned manifests, boots the server, checks the A2S self-check
 and the plugin stack, and fails on any `Unknown command` the game build
 introduced. So a merged bump is a booted one.
 
+While that pull request is open the daily run leaves it alone, but only for as
+long as it can still merge. Anything that lands on `main` edits the same `ARG`
+lines and the same architecture rows, so an open bump sooner or later stops
+being mergeable; the run then closes it as superseded and opens a fresh one
+against the current base rather than standing down and leaving the pins
+frozen. Branches that no open pull request is using are cleared out in the
+same pass, because a merged bump does not take its branch with it.
+
 > Auto-merge and branch protection are already enabled on the repository, so
 > there is nothing to configure by hand. They live in the repository's
 > settings rather than in this file; if they are ever reset, the `gh` commands

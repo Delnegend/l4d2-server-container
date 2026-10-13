@@ -82,11 +82,48 @@ jobs:
         run: |
           set -euo pipefail
 
-          if gh pr list --state open \
-               --search 'bump the pinned upstream versions in:title' \
-               --json number --jq '.[0].number' | grep -q .; then
-            echo "An update pull request is already open; leaving it alone."
-            exit 0
+          # A bump branch outlives its pull request. The repository is set to
+          # delete head branches on merge, but that does not fire for the
+          # auto-merge rebase this job queues - every bump merged that way has
+          # left its branch behind - and a superseded pull request is closed
+          # rather than merged anyway. A branch with no open pull request is
+          # dead, so clear it out. Best effort: a branch that refuses to go
+          # should not stop the bump.
+          live=$(gh pr list --state open --limit 100 --json headRefName --jq '.[].headRefName')
+          for ref in $(git ls-remote --heads origin 'refs/heads/automation/bump-*' | sed 's#.*refs/heads/##'); do
+            if printf '%s\n' "$live" | grep -qx "$ref"; then
+              continue
+            fi
+            echo "Deleting ${ref}: no open pull request uses it."
+            git push origin --delete "$ref" \
+              || echo "Could not delete ${ref}; the next run will try again."
+          done
+
+          # An open bump pull request only counts as handled while it can still
+          # merge. Anything that lands on main edits the same ARG lines and
+          # architecture rows this job rewrites, so the open pull request ends
+          # up in conflict sooner or later - unable to merge itself, and able
+          # to freeze the pins for as long as it stays open, because standing
+          # down is what this job used to do about it. Replace it instead, on
+          # today's base, and delete the branch it was left on.
+          open=$(gh pr list --state open \
+                   --search 'bump the pinned upstream versions in:title' \
+                   --json number,mergeable \
+                   --jq '.[0] | select(.) | "\(.number) \(.mergeable)"')
+
+          if [ -n "$open" ]; then
+            number="${open%% *}"
+            mergeable="${open##* }"
+            # MERGEABLE and UNKNOWN are both "leave it alone": GitHub computes
+            # mergeability lazily, and one more day of waiting is cheaper than
+            # a second pull request for the same bump.
+            if [ "$mergeable" != 'CONFLICTING' ]; then
+              echo "Pull request #${number} is ${mergeable}; leaving it alone."
+              exit 0
+            fi
+            echo "Pull request #${number} is CONFLICTING; replacing it."
+            gh pr close "$number" --delete-branch --comment \
+              'Superseded: main moved under this branch and it can no longer merge, so the daily check opened a fresh pull request against the current base instead of standing down.'
           fi
 
           branch="automation/bump-$(date -u +%Y%m%d)"
