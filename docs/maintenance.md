@@ -52,10 +52,11 @@ If any of them is stale, the workflow opens **one** pull request that rewrites
 the `ARG` defaults and the matching rows in
 [architecture.md](architecture.md#build-arguments) with
 `scripts/apply-bump.py`, then enables auto-merge on it. The pull request lands
-when `Check (just verify)` goes green, and that check is not a lint — it
-downloads both pinned manifests, boots the server, checks the A2S self-check
-and the plugin stack, and fails on any `Unknown command` the game build
-introduced. So a merged bump is a booted one.
+when `Check (just verify)` goes green, after a maintainer approves that run —
+GitHub holds runs raised by the bot's own pull requests. The check is not a
+lint: it downloads both pinned manifests, boots the server, checks the A2S
+self-check and the plugin stack, and fails on any `Unknown command` the game
+build introduced. So a merged bump is a booted one.
 
 While that pull request is open the daily run leaves it alone, but only for as
 long as it can still merge. Anything that lands on `main` edits the same `ARG`
