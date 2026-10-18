@@ -1,33 +1,7 @@
 name: Release / Build Artifacts
 
-# One image, one version, decided by the commit history rather than by anyone
-# typing a number.
-#
-# `semver-action` reads the Conventional Commits since the latest tag and
-# returns the next version. Nothing here - no flag, no input, no hand-rolled
-# arithmetic - can override it, so the version is a fact about the commits and
-# not a claim someone made about them.
-#
-#   feat:  -> minor      fix/refactor/build: -> patch
-#   everything else                 -> no bump, so nothing is released
-#
-# The version is automatic; the timing is not. Shipping an image is a
-# deliberate act, and the weekly cron below is the only thing that presses the
-# button without a human. The run has three targets, all reachable from
-# Actions -> Run workflow:
-#
-#   new-tag (default)  gate on CI, bump the version, tag & push, then build
-#   tag                rebuild an existing tag and publish its release
-#   commit             test build the latest commit; load the image only
-#
-# `build:` is in the patch list because this repository uses `build:` for
-# changes that ship inside the image (Dockerfile, mod stack, overlay). It
-# would otherwise produce no version, and an image change would go out under
-# the previous tag.
-
 on:
-  # No version field: the number comes from the commits, so there is nothing
-  # to type and nothing to get wrong.
+  # No version input: the number comes from the commits.
   workflow_dispatch:
     inputs:
       ref:
@@ -40,9 +14,8 @@ on:
         type: boolean
         default: false
   schedule:
-    - cron: '0 0 * * 0' # Weekly: Sunday 00:00 UTC (defaults to target: new-tag)
+    - cron: '0 0 * * 0' # Weekly: Sunday 00:00 UTC
 
-# Serialise releases: two concurrent runs must never race for the same version.
 concurrency:
   group: release-main
   cancel-in-progress: false
@@ -62,7 +35,6 @@ env:
 jobs:
   prepare:
     name: Prepare / Bump Version
-    # Orchestration plus `just check`, so the full runner is enough.
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -93,11 +65,9 @@ jobs:
           # The oldest tag that exists, used only if every other tag is ever
           # deleted. Must name a real tag or the action errors.
           fallbackTag: v1.0.0
-          # The action's defaults are fix, bugfix, perf, refactor, test, tests.
-          # `build` is added because this repo ships image changes under that
-          # prefix, and those must move the version.
+          # `build:` ships image changes, so it bumps patch rather than nothing.
           patchList: fix, bugfix, perf, refactor, test, tests, build
-          # Nothing to release is a normal outcome, not a failure.
+          # Silent: weeks with nothing to release end green, not failed.
           noNewCommitBehavior: silent
           noVersionBumpBehavior: silent
 
@@ -126,7 +96,6 @@ jobs:
     name: Build & Release Artifacts
     needs: prepare
     if: needs.prepare.outputs.skip != 'true'
-    # A container image build, so it needs the full runner's toolchain.
     runs-on: ubuntu-latest
     permissions:
       contents: write   # to create the release
@@ -149,19 +118,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # One published image, with exactly two tags: the exact version and
-      # `latest`. No rolling major.minor or major tags, and no per-target tag,
-      # so `:1.0.3` always means the same thing and there is nothing ambiguous
-      # to accidentally deploy.
+      # Exactly two tags, never rolling ones, so a version always means the same image.
       #
-      # `target: commit` is a test build: nothing is pushed, the image is only
-      # loaded into the runner's local store, and the GitHub Release is not
-      # published.
-      #
-      # The registry blobs are zstd level 4. Anything that pulls this image
-      # needs a runtime that understands zstd layers (containerd 1.7+,
-      # Docker 20.10+, podman 3+); if that ever stops being true, change the
-      # `outputs` line to `type=image,compression=gzip`.
+      # zstd layers need a modern runtime (containerd 1.7+, Docker 20.10+,
+      # podman 3+); if that ever stops being true, switch `outputs` to gzip.
       - name: Build and push server
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
@@ -183,12 +143,6 @@ jobs:
           cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache
           cache-to: type=registry,ref=${{ env.IMAGE }}:buildcache,mode=max,image-manifest=true
 
-      # The tag already exists by the time this runs: `prepare` created and
-      # pushed it before the build started. That is the point - the release
-      # names a version that is already a fact about the repository - but it
-      # also means a build failure here leaves a tag with no release. The
-      # repair is to re-run with `target: tag`, which rebuilds the tag and
-      # publishes its release without touching the version.
       - name: Publish the release
         if: needs.prepare.outputs.publish == 'true'
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3

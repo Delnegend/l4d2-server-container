@@ -20,10 +20,7 @@ env:
 
 jobs:
   verify:
-    # This is the gate, and a required check on main: nothing merges, and
-    # nothing gets published, without it. It boots a real server, checks the A2S
-    # self-check and the plugin stack, and fails on any `Unknown command` the
-    # game build introduces.
+    # Boots a real server: A2S self-check, plugin stack, no `Unknown command`.
     name: Check (just verify)
     runs-on: ubuntu-latest
 
@@ -51,9 +48,6 @@ jobs:
           EXTRA_BUILD_ARGS: --cache-from type=registry,ref=${{ env.IMAGE }}:buildcache --load
           L4D2_SMOKE_DIR: ${{ github.workspace }}/.smoke
 
-  # Security scans. They need Docker images and registry egress, so they only run
-  # on GitHub-hosted runners. None of them is a required check — the branch
-  # protection contract stays `Check (just verify)`, which is this repo's gate.
   scan:
     name: Scan
     uses: Delnegend/actions/.github/workflows/scan.yml@6b0ff42cc9e8937cd1b37faebccd093fc6c68a86 # v1
