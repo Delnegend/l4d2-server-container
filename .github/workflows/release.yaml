@@ -30,19 +30,15 @@ on:
   # to type and nothing to get wrong.
   workflow_dispatch:
     inputs:
-      target:
-        description: "Release mode / build target"
-        required: true
-        type: choice
-        default: "new-tag"
-        options:
-          - new-tag  # Gate on CI -> bump version -> tag & push -> build & publish release
-          - tag      # Rebuild existing tag -> build & publish release
-          - commit   # Test build latest commit -> load the image only (no release)
       ref:
-        description: "Custom tag or commit SHA (optional, defaults to latest)"
+        description: "Empty = ship a new version. SHA = test-build it (no publish). Tag = rebuild it."
         required: false
         type: string
+      dry-run:
+        description: "Preview only: print each action (gate, bump, tag, build, publish) without doing any of it."
+        required: false
+        type: boolean
+        default: false
   schedule:
     - cron: '0 0 * * 0' # Weekly: Sunday 00:00 UTC (defaults to target: new-tag)
 
@@ -75,7 +71,7 @@ jobs:
       # spelled `version_strict` rather than a bare `version:` so that
       # scripts/docs-check.py can keep telling a real `version:` input apart
       # from an output (its scan is a plain text search for the line).
-      version_strict: ${{ steps.resolve.outputs.version_strict }}
+      version_strict: ${{ steps.resolve.outputs.version }}
       publish: ${{ steps.resolve.outputs.publish }}
       skip: ${{ steps.resolve.outputs.skip }}
     steps:
@@ -89,11 +85,7 @@ jobs:
       - name: Set up just
         uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
 
-      # ---------------------------------------------------------------------
-      # Mode 1: new-tag (semver -> CI gate -> bump -> atomic push)
-      # ---------------------------------------------------------------------
       - name: Calculate Next SemVer
-        if: (inputs.target || 'new-tag') == 'new-tag'
         id: semver
         uses: ietf-tools/semver-action@c90370b2958652d71c06a3484129a4d423a6d8a8 # v1
         with:
@@ -110,78 +102,25 @@ jobs:
           noVersionBumpBehavior: silent
 
       - name: CI Gate (verify code is green before bumping)
-        if: (inputs.target || 'new-tag') == 'new-tag' && steps.semver.outputs.bump != 'none'
+        if: steps.semver.outputs.next != ''
         run: just check
 
-      - name: Bump package manager version
-        if: (inputs.target || 'new-tag') == 'new-tag' && steps.semver.outputs.bump != 'none'
-        env:
-          NEXT_STRICT: ${{ steps.semver.outputs.nextStrict }}
-        run: just bump "$NEXT_STRICT"
-
-      # The version is not written anywhere in the tree: it is injected into
-      # the image as the SERVER_VERSION build argument, so `just bump` is a
-      # documented no-op and this commits only when something staged.
-      - name: Commit the bump (skipped when the project has no manifest)
-        if: (inputs.target || 'new-tag') == 'new-tag' && steps.semver.outputs.bump != 'none'
-        env:
-          NEXT_TAG: ${{ steps.semver.outputs.next }}
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "actions@users.noreply.github.com"
-
-          git add -u
-          if git diff --staged --quiet; then
-            echo "no manifest to bump — tagging HEAD"
-          else
-            git commit -m "chore(release): ${NEXT_TAG}"
-          fi
-
-          git rev-parse -q --verify "refs/tags/${NEXT_TAG}" >/dev/null && { echo "::error::tag ${NEXT_TAG} already exists"; exit 1; }
-          git tag -a "${NEXT_TAG}" -m "Release ${NEXT_TAG}"
-
-          git push origin HEAD:main "refs/tags/${NEXT_TAG}"
-
-      # ---------------------------------------------------------------------
-      # Resolve outputs for the build job
-      # ---------------------------------------------------------------------
-      - name: Resolve outputs
+      - name: Bump, tag, and push
         id: resolve
-        env:
-          TARGET: ${{ inputs.target || 'new-tag' }}
-          INPUT_REF: ${{ inputs.ref }}
-          BUMP: ${{ steps.semver.outputs.bump }}
-          CURRENT: ${{ steps.semver.outputs.current }}
-          NEXT: ${{ steps.semver.outputs.next }}
-          NEXT_STRICT: ${{ steps.semver.outputs.nextStrict }}
-        run: |
-          set -euo pipefail
-          if [ "$TARGET" = "new-tag" ]; then
-            # semver-action returns before setOutput('bump') when there are no
-            # new commits at all, so NEXT is the reliable signal, not BUMP.
-            # Guarding on BUMP alone leaves NEXT empty, which either trips the
-            # re-ship guard or ships an empty ref.
-            if [ -z "$NEXT" ] || [ "$BUMP" = "none" ]; then
-              echo "No version bump needed (current: ${CURRENT:-none})."
-              echo "skip=true" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            {
-              echo "ref=$NEXT"
-              echo "version_strict=$NEXT_STRICT"
-              echo "publish=true"
-              echo "skip=false"
-            } >> "$GITHUB_OUTPUT"
-          elif [ "$TARGET" = "tag" ]; then
-            TAG="${INPUT_REF:-$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1 || true)}"
-            [ -n "$TAG" ] || { echo "::error::No release tag found"; exit 1; }
-            { echo "ref=$TAG"; echo "version_strict=${TAG#v}"; echo "publish=true"; echo "skip=false"; } >> "$GITHUB_OUTPUT"
-          else
-            SHA="${INPUT_REF:-$(git rev-parse HEAD)}"
-            { echo "ref=$SHA"; echo "version_strict=$SHA"; echo "publish=false"; echo "skip=false"; } >> "$GITHUB_OUTPUT"
-            echo "Running test build against commit $SHA (will not publish release)"
-          fi
+        uses: Delnegend/actions/resolve-release@1299339be1f82a70f2580c26c82f5a6925b99dc4 # v1
+        with:
+          ref: ${{ inputs.ref }}
+          dry-run: ${{ inputs.dry-run }}
+          gate-sha: ${{ github.sha }}
+          # The version is not written anywhere in the tree: it is injected
+          # into the image as the SERVER_VERSION build argument, and `just
+          # bump` is a documented no-op. So HEAD is tagged with no commit.
+          manifest-path: ''
+          bump-command: ''
+          semver-bump: ${{ steps.semver.outputs.bump }}
+          semver-current: ${{ steps.semver.outputs.current }}
+          semver-next: ${{ steps.semver.outputs.next }}
+          semver-next-strict: ${{ steps.semver.outputs.nextStrict }}
 
   build:
     name: Build & Release Artifacts
