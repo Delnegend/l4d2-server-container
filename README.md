@@ -1,6 +1,6 @@
 <div align="center">
 
-# Left 4 Dead 2 Dedicated Server
+# L4D2 Server Container
 
 **Left 4 Dead 2 Linux dedicated server container with 8-player co-op support and instant boot times.**
 
