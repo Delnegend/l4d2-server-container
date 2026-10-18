@@ -171,26 +171,20 @@ about them.
 
 **Actions → Release → Run workflow**, or the weekly schedule. The workflow
 runs unattended every Sunday at 00:00 UTC and is also dispatched by hand; both
-roads lead to the same three targets:
+roads lead to the same optional `ref`:
 
-| `target` | What the run does |
-|---|---|
-| `new-tag` (the default, and what the cron uses) | gate on `just check`, derive the next version, tag and push it, then build and publish the release |
-| `tag` | rebuild an existing tag and publish its release |
-| `commit` | test-build a commit and load the image into the runner only — never a release |
+- empty ships the release, a version tag rebuilds one, and a commit SHA
+  test-builds without publishing ([dispatch modes](https://github.com/Delnegend/actions/blob/main/README.md)).
 
-The `ref` input is optional and read only by `tag` (the tag to rebuild,
-defaulting to the newest) and `commit` (a SHA, defaulting to `HEAD`); `new-tag`
-derives its own reference and ignores it. If a `new-tag` run decides there is
-nothing worth releasing, the build job is skipped and the run ends green having
-published nothing.
+If a ship run decides there is nothing worth releasing, the build job is
+skipped and the run ends green having published nothing.
 
 So the decision is two separate ones:
 
 | | Decided by | You can override? |
 |---|---|---|
 | **What version** | the commit messages | no — nothing in the workflow accepts a number |
-| **Whether to ship** | the Sunday cron, or you pressing the button | yes — dispatch `target: commit` for a test build, or `target: tag` to republish a ref |
+| **Whether to ship** | the Sunday cron, or you pressing the button | yes — dispatch with a SHA for a test build, or a tag to republish a ref |
 
 If a run publishes nothing, the commits since the last tag did not earn a bump.
 Fix that in the commit message — `git commit --amend` to `fix:` rather than
