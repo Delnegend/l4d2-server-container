@@ -158,7 +158,11 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$TARGET" = "new-tag" ]; then
-            if [ "$BUMP" = "none" ]; then
+            # semver-action returns before setOutput('bump') when there are no
+            # new commits at all, so NEXT is the reliable signal, not BUMP.
+            # Guarding on BUMP alone leaves NEXT empty, which either trips the
+            # re-ship guard or ships an empty ref.
+            if [ -z "$NEXT" ] || [ "$BUMP" = "none" ]; then
               echo "No version bump needed (current: ${CURRENT:-none})."
               echo "skip=true" >> "$GITHUB_OUTPUT"
               exit 0
