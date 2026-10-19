@@ -142,25 +142,44 @@ for names_cell, values_cell in build_arg_row.findall(arch):
 # ---------------------------------------------------------------------------
 # 5. Tag policy: semver + latest only, no per-target tags anywhere
 # ---------------------------------------------------------------------------
-# The release workflow, and the job that decides the version. The version is
-# derived from the Conventional Commits since the last tag, so the check is
-# that the image tag comes from that output and not from something typed.
+# The version is derived from the Conventional Commits since the last tag, so
+# the check is that the image tag comes from that output and not from
+# something typed. The push itself lives in the shared docker-build-push
+# action (exactly two tags: the exact version + latest), so here we check the
+# call site hands it the right inputs and overrides nothing.
 workflow = read(ROOT / ".github/workflows/release.yaml")
-pushed = set(re.findall(r"^\s*\$\{\{ env\.IMAGE \}\}:(.+?)\s*$", workflow, re.M))
-pushed = {tag for tag in pushed if "IMAGE" not in tag}
 
-if "latest" not in pushed:
-    fail("release.yaml: does not push a 'latest' tag")
-for tag in pushed:
-    if tag.endswith(("-base", "-qol", "-coop8")) or tag in {"base", "qol", "coop8"}:
-        fail(f"release.yaml: still pushes a per-target tag '{tag}'")
+build_step = re.search(
+    r"- name: Build and push server\n(.*?)(?=\n      - name: |\Z)",
+    workflow,
+    re.S,
+)
+if not build_step or "uses: Delnegend/actions/docker-build-push@" not in build_step.group(1):
+    fail("release.yaml: must build via the shared docker-build-push action")
+else:
+    body = build_step.group(1)
+    if not re.search(r"uses: Delnegend/actions/docker-build-push@[0-9a-f]{40} # v\d+", body):
+        fail("release.yaml: docker-build-push pin must be a full SHA with a version comment")
+    image_input = re.search(r"^\s+image:\s*(.+?)\s*$", body, re.M)
+    if not image_input or image_input.group(1).strip() != "${{ env.IMAGE }}":
+        fail("release.yaml: composite image input must be exactly '${{ env.IMAGE }}'")
+    if "needs.prepare.outputs.version_strict" not in body:
+        fail("release.yaml: image version must come from the semver-derived version_strict output")
+    if "cache: registry" not in body:
+        fail("release.yaml: must use the registry cache backend")
+    for banned in ("tags:", "outputs:", "cache-from:", "cache-to:"):
+        if re.search(rf"^\s+{re.escape(banned)}", body, re.M):
+            fail(f"release.yaml: must not set '{banned}' — tags and cache live in the shared action")
 
 # Match the `uses:` line, not the bare name: the workflow explains semver-action
 # in prose, so a substring test on "semver-action" passes even if the step that
 # actually computes the version has been deleted.
 if "uses: ietf-tools/semver-action" not in workflow:
     fail("release.yaml: the version must come from the semver-action step, not a manual input")
-declared_inputs = re.search(r"inputs:(.*)", workflow, re.S)
+# Scope the search to the dispatch block: composite `with:` inputs below may
+# legitimately contain a `version:` key, which is not a hand-typed version.
+dispatch = workflow.split("\njobs:")[0]
+declared_inputs = re.search(r"inputs:(.*)", dispatch, re.S)
 if declared_inputs and re.search(r"^\s+version:", declared_inputs.group(1), re.M):
     fail("release.yaml: declares a 'version' input, so someone can type the version by hand")
 
@@ -188,27 +207,13 @@ for path in DOCS:
         fail(f"{path.relative_to(ROOT)}: advertises a retired tag '{tag}'")
 
 # ---------------------------------------------------------------------------
-# 6. The compression claim in the docs matches the workflow
+# 6. The compression claim in the docs matches the shared build action
 # ---------------------------------------------------------------------------
-
-# Exactly two tags, and one of them must be the exact version. A rolling
-# `1.0`/`1` tag is as much a policy change as a per-target one.
-version_refs = [t for t in pushed if "outputs.version" in t]
-if len(pushed) != 2:
-    fail(f"release.yaml: pushes {len(pushed)} tags {sorted(pushed)}, expected exactly 2")
-if len(version_refs) != 1:
-    fail("release.yaml: exactly one tag must be the exact version")
-
-if "compression=zstd" not in workflow:
-    fail("release.yaml: registry compression is not zstd")
-level = re.search(r"compression-level=(\d+)", workflow)
-if not level:
-    fail("release.yaml: no compression level set")
-elif f"level {level.group(1)}" not in arch and f"zstd level {level.group(1)}" not in arch:
-    fail(
-        f"docs/architecture.md: does not mention the zstd level "
-        f"{level.group(1)} the workflow actually uses"
-    )
+# zstd layers live in Delnegend/actions/docker-build-push, which this repo
+# cannot read in CI; the call-site check above guarantees no override. What
+# is checkable here is that the docs still describe the implemented policy.
+if "zstd level 4" not in arch:
+    fail("docs/architecture.md: does not mention the zstd level 4 the shared build uses")
 
 # ---------------------------------------------------------------------------
 if failures:
