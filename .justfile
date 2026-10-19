@@ -213,6 +213,28 @@ check:
 verify: check smoke
     @echo "check + smoke (linking, A2S self-check, plugin stack) all passed"
 
-# No manifest: versions live in git tags, so this is a documented no-op.
+# Version lives in VERSION; release workflow tags it via `just version bump`.
 bump version:
-    @echo "versions are tracked by git tags; nothing to bump"
+    @just version bump "{{version}}"
+
+# Language-agnostic version contract for Delnegend/actions/resolve-release.
+version action ver="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{action}}" in
+      get)
+        cat VERSION
+        ;;
+      bump)
+        [ -n "{{ver}}" ] || { echo "usage: just version bump X.Y.Z" >&2; exit 1; }
+        NEW="{{ver}}"
+        OLD="$(cat VERSION 2>/dev/null || true)"
+        if [ "$NEW" = "$OLD" ]; then
+          echo "error: bump $NEW is a no-op (VERSION unchanged)" >&2
+          exit 1
+        fi
+        printf '%s\n' "$NEW" > VERSION
+        git diff -- VERSION
+        ;;
+      *) echo "usage: just version get|bump X.Y.Z" >&2; exit 1 ;;
+    esac
