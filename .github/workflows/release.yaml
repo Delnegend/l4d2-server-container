@@ -77,7 +77,7 @@ jobs:
 
       - name: Bump, tag, and push
         id: resolve
-        uses: Delnegend/actions/resolve-release@fd9a429325e7c9103399f01855023e6b394457a2 # v1
+        uses: Delnegend/actions/resolve-release@62064acc9dce2872175e85b3b2e1c2295cd1bee7 # v1
         with:
           ref: ${{ inputs.ref }}
           dry-run: ${{ inputs.dry-run }}
@@ -111,20 +111,20 @@ jobs:
       # podman 3+); if that ever stops being true, switch `outputs` to gzip.
       - name: Build and push server
         id: build
-        uses: Delnegend/actions/docker-build-push@fd9a429325e7c9103399f01855023e6b394457a2 # v1
+        uses: Delnegend/actions/docker-build-push@62064acc9dce2872175e85b3b2e1c2295cd1bee7 # v1
         with:
           image: ${{ env.IMAGE }}
           version: ${{ needs.prepare.outputs.version_strict }}
           publish: ${{ needs.prepare.outputs.publish }}
           target: server
-          platforms: linux/amd64
-          cache: registry
           build-args: |
             SERVER_VERSION=${{ needs.prepare.outputs.version_strict }}
 
       - name: Publish the release
-        uses: Delnegend/actions/publish-release@fd9a429325e7c9103399f01855023e6b394457a2 # v1
+        uses: Delnegend/actions/publish-release@62064acc9dce2872175e85b3b2e1c2295cd1bee7 # v1
         with:
           ref: ${{ needs.prepare.outputs.ref }}
           publish: ${{ needs.prepare.outputs.publish }}
           download: "false"
+          image: ${{ env.IMAGE }}
+          version: ${{ needs.prepare.outputs.version_strict }}
