@@ -165,11 +165,11 @@ else:
         fail("release.yaml: composite image input must be exactly '${{ env.IMAGE }}'")
     if "needs.prepare.outputs.version_strict" not in body:
         fail("release.yaml: image version must come from the semver-derived version_strict output")
-    if "cache: registry" not in body:
-        fail("release.yaml: must use the registry cache backend")
-    for banned in ("tags:", "outputs:", "cache-from:", "cache-to:"):
+    if "cache:" in body:
+        fail("release.yaml: must not set 'cache' — the cache backend lives in the shared action")
+    for banned in ("tags:", "outputs:", "platforms:", "cache-from:", "cache-to:"):
         if re.search(rf"^\s+{re.escape(banned)}", body, re.M):
-            fail(f"release.yaml: must not set '{banned}' — tags and cache live in the shared action")
+            fail(f"release.yaml: must not set '{banned}' — tags, platform and cache live in the shared action")
 
 # Match the `uses:` line, not the bare name: the workflow explains semver-action
 # in prose, so a substring test on "semver-action" passes even if the step that
