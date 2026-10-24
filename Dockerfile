@@ -19,9 +19,6 @@
 ARG DEBIAN_IMAGE=debian:trixie-slim
 ARG SERVER_VERSION=dev
 
-# ---------------------------------------------------------------------------
-# Pins: upstream game depots, tools, and mod versions
-# ---------------------------------------------------------------------------
 ARG APP_ID=222860
 # 222861 is the linux dedicated server: 116 977 files, ~9.5 GB. 222863 is 674
 # files, the launcher. The SDK depot is not selected: -os linux never picks it.

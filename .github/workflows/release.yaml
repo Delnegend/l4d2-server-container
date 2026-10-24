@@ -24,12 +24,7 @@ permissions:
   contents: write
 
 env:
-  # A literal, lowercase, with no expressions. `${{ github.repository }}`
-  # expands to `Delnegend/...`, and buildx rejects a mixed-case image
-  # reference before it builds anything:
-  #   invalid tag "ghcr.io/Delnegend/l4d2-server-container:1.1.0":
-  #   repository name must be lowercase
-  # `just check` enforces both halves of that rule.
+  # Lowercase image repository required by buildx.
   IMAGE: ghcr.io/delnegend/l4d2-server-container
 
 jobs:
@@ -39,10 +34,7 @@ jobs:
     timeout-minutes: 30
     outputs:
       ref: ${{ steps.resolve.outputs.ref }}
-      # semver-action calls the `v`-less version `nextStrict`; the key is
-      # spelled `version_strict` rather than a bare `version:` so that
-      # scripts/docs-check.py can keep telling a real `version:` input apart
-      # from an output (its scan is a plain text search for the line).
+      # version_strict distinguishes step output from version input.
       version_strict: ${{ steps.resolve.outputs.version }}
       publish: ${{ steps.resolve.outputs.publish }}
       skip: ${{ steps.resolve.outputs.skip }}

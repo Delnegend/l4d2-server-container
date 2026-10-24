@@ -82,13 +82,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          # A bump branch outlives its pull request. The repository is set to
-          # delete head branches on merge, but that does not fire for the
-          # auto-merge rebase this job queues - every bump merged that way has
-          # left its branch behind - and a superseded pull request is closed
-          # rather than merged anyway. A branch with no open pull request is
-          # dead, so clear it out. Best effort: a branch that refuses to go
-          # should not stop the bump.
+          # Prune stale automation bump branches with no open pull request.
           live=$(gh pr list --state open --limit 100 --json headRefName --jq '.[].headRefName')
           for ref in $(git ls-remote --heads origin 'refs/heads/automation/bump-*' | sed 's#.*refs/heads/##'); do
             if printf '%s\n' "$live" | grep -qx "$ref"; then
