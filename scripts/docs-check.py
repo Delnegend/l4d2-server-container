@@ -161,8 +161,8 @@ else:
     if not re.search(r"uses: Delnegend/actions/docker-build-push@[0-9a-f]{40} # v\d+", body):
         fail("release.yaml: docker-build-push pin must be a full SHA with a version comment")
     image_input = re.search(r"^\s+image:\s*(.+?)\s*$", body, re.M)
-    if not image_input or image_input.group(1).strip() != "${{ env.IMAGE }}":
-        fail("release.yaml: composite image input must be exactly '${{ env.IMAGE }}'")
+    if image_input and image_input.group(1).strip() != "${{ env.IMAGE }}":
+        fail("release.yaml: composite image input must be empty or '${{ env.IMAGE }}'")
     if "needs.prepare.outputs.version_strict" not in body:
         fail("release.yaml: image version must come from the semver-derived version_strict output")
     if "cache:" in body:
@@ -187,9 +187,7 @@ if declared_inputs and re.search(r"^\s+version:", declared_inputs.group(1), re.M
 # the literal text is already lowercase and the capital D only appears after
 # expansion. So the value must be a literal with no expressions, and lowercase.
 image = re.search(r"^\s*IMAGE:\s*(.+?)\s*$", workflow, re.M)
-if not image:
-    fail("release.yaml: no IMAGE: line")
-else:
+if image:
     value = image.group(1)
     if "${{" in value:
         fail(
@@ -201,7 +199,6 @@ else:
             f"release.yaml: IMAGE '{value}' is not lowercase; buildx rejects a "
             f"mixed-case image reference and fails the release on it"
         )
-
 for path in DOCS:
     for tag in re.findall(r"[\w.]+:(?:[\d.]+-(?:qol|coop8|base))", read(path)):
         fail(f"{path.relative_to(ROOT)}: advertises a retired tag '{tag}'")

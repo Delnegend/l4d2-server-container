@@ -23,9 +23,6 @@ concurrency:
 permissions:
   contents: write
 
-env:
-  # Lowercase image repository required by buildx.
-  IMAGE: ghcr.io/delnegend/l4d2-server-container
 
 jobs:
   prepare:
@@ -87,25 +84,18 @@ jobs:
     if: needs.prepare.outputs.skip != 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # to create the release
-      packages: write   # to push to ghcr.io
+      packages: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.prepare.outputs.ref }}
-          fetch-depth: 0
 
-      # Exactly two tags, never rolling ones, so a version always means the same image.
-      #
-      # zstd layers need a modern runtime (containerd 1.7+, Docker 20.10+,
-      # podman 3+); if that ever stops being true, switch `outputs` to gzip.
       - name: Build and push server
         id: build
         uses: Delnegend/actions/docker-build-push@62064acc9dce2872175e85b3b2e1c2295cd1bee7 # v1
         with:
-          image: ${{ env.IMAGE }}
           version: ${{ needs.prepare.outputs.version_strict }}
           publish: ${{ needs.prepare.outputs.publish }}
           target: server
@@ -117,6 +107,5 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.ref }}
           publish: ${{ needs.prepare.outputs.publish }}
-          download: "false"
-          image: ${{ env.IMAGE }}
+          container: true
           version: ${{ needs.prepare.outputs.version_strict }}
