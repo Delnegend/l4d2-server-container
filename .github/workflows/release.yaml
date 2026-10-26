@@ -84,6 +84,7 @@ jobs:
     if: needs.prepare.outputs.skip != 'true'
     runs-on: ubuntu-latest
     permissions:
+      contents: write
       packages: write
 
     steps:
