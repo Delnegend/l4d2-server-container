@@ -100,7 +100,7 @@ manifest chunks are fetched concurrently. The tool's own default is 8.
 | `SOURCEMOD_BRANCH` | `1.12` | AlliedModders release branch for **both** MetaMod:Source and SourceMod. |
 | `L4DTOOLZ_VERSION` / `L4DTOOLZ_BUILD` | `2.5.1` / `2155` | Which l4dtoolz release goes into the overlay. |
 | `LEFT4DHOOKS_SHA256` | `1536aac3…` | Checksum the vendored `assets/left4dhooks.zip` against. The build fails if it does not match. |
-| `L4D_PLUGINS_REF` | `3e11cddb…` | Commit of [fbef0102/L4D1_2-Plugins](https://github.com/fbef0102/L4D1_2-Plugins) the 5+ plugins are fetched from, so a rebuild gets the same bytes. |
+| `L4D_PLUGINS_REF` | `5de62713…` | Commit of [fbef0102/L4D1_2-Plugins](https://github.com/fbef0102/L4D1_2-Plugins) the 5+ plugins are fetched from, so a rebuild gets the same bytes. |
 | `BLOCK_LOGON_RELEASE` / `BLOCK_LOGON_ASSET` | `release-…` / `modified…` | Which [blueblur0730/modified-plugins](https://github.com/blueblur0730/modified-plugins) release the No-Steam-logon bypass comes from, and which SourceMod-1.12 asset the build unpacks. |
 | `DEPOT_DOWNLOADER_VERSION` | `3.4.0` | DepotDownloader release to ship in the image. |
 | `SERVER_VERSION` | `dev` | Stamped as `org.opencontainers.image.version`. |
