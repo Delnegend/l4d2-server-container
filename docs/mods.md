@@ -11,7 +11,7 @@ the image** (versioned, reproducible, needs a rebuild).
 | Tracked in git | no | yes |
 | Right for | plugins you are trialling, a map for one group | anything everyone should have |
 
-Two things to decide first: *where* it lives, and *what kind* of mod it is —
+Two things to decide first: *where* it lives, and *what kind* of mod it is:
 a SourceMod plugin, a MetaMod extension, or map/campaign content.
 
 ---
@@ -42,7 +42,7 @@ So:
 `server_custom.cfg`, `sourcemod.cfg` and `l4dmultislots.cfg` are yours to tune.
 
 > **Keep content that costs you a download out of `addons/`.** A campaign VPK
-> there survives restarts but not a game update, and the loss is silent — the
+> there survives restarts but not a game update, and the loss is silent; the
 > server boots perfectly without it. `maps/` and `scripts/` are real directories
 > the overlay never touches, and the engine loads from them, so a campaign that
 > belongs to the server rather than the image belongs there. Anything you cannot
@@ -74,7 +74,7 @@ and `--no-preserve=ownership` makes that work.
 
 Pin it to a commit, not a branch, so a rebuild gets the same bytes. A `.smx`
 that is fetched from a forum attachment rather than a package feed has no such
-option — that is why `assets/left4dhooks.zip` is vendored and checked against
+option; that is why `assets/left4dhooks.zip` is vendored and checked against
 `LEFT4DHOOKS_SHA256` instead.
 
 ### Dependencies
@@ -89,7 +89,7 @@ read the log. These are the four seen in practice, verbatim:
 | `Fatal error encountered parsing translation file "X.phrases.txt"` | the plugin's `translations/` file |
 | `unsupported feature set; code is too new` | the plugin is compiled against a newer SourceMod than the image ships |
 
-Some plugins also need a **library** — a `.inc` in
+Some plugins also need a **library**: a `.inc` in
 `addons/sourcemod/scripting/include/`. SourceMod decides a library is present
 by finding that file on disk at load time, so the include has to be installed
 even though the plugin is already compiled. `l4dmultislots` needs Multi-Colors
@@ -103,7 +103,7 @@ layout intact. If it contains a bare `sourcemod/...`, the tree belongs in
 
 ## MetaMod extensions (`.so` + `.vdf`)
 
-An extension is a library the engine loads itself, ahead of SourceMod — that is
+An extension is a library the engine loads itself, ahead of SourceMod; that is
 what l4dtoolz is. It needs two files in `addons/`, and the **`.vdf` is what
 makes the engine load it**:
 
@@ -115,7 +115,7 @@ makes the engine load it**:
 ```
 
 Dropping both files straight into `data/left4dead2/addons/` persists across
-restarts — but only until the next install is replaced, at which point they go
+restarts, but only until the next install is replaced, at which point they go
 with everything else in `addons/`. Bake them into the overlay if the extension
 is meant to be permanent:
 
@@ -129,7 +129,7 @@ The path inside the `.vdf` is relative to the game directory and normally has no
 extension: `addons/mytoolz` finds `mytoolz.so`.
 
 **Ship the 32-bit build.** L4D2's engine is 32-bit here, and the image strips
-MetaMod's `linux64/` module — that is the source of the harmless
+MetaMod's `linux64/` module; that is the source of the harmless
 `Unable to load plugin "addons/metamod/bin/linux64/server"` line in the log.
 
 ---
@@ -148,7 +148,7 @@ the stock content and survive a game update.
 Workshop VPKs are conventionally dropped straight into
 `data/left4dead2/addons/`, because that is where the engine looks for mounted
 content and it is what the workshop tooling does. It works, and it survives
-restarts — but an install swap deletes it, silently, and the server boots
+restarts, but an install swap deletes it, silently, and the server boots
 without the campaign. If a map is worth more than a re-download, move it to
 `maps/` once you are happy with it.
 
@@ -180,7 +180,7 @@ podman compose logs l4d2 | grep -E '\[SM\]'      # empty = everything loaded
 `just smoke` automates exactly that against a freshly built image, and also
 reports how many of the expected plugins are present.
 
-From a connected client, the in-game console is the other view — `sm plugins`
+From a connected client, the in-game console is the other view: `sm plugins`
 lists what SourceMod loaded, `meta list` what MetaMod has. Those are the
 standard SourceMod and MetaMod commands; the log check above is the one verified
 in this repository's own tests, because it needs no client.
@@ -204,8 +204,8 @@ podman compose restart l4d2
 podman compose logs l4d2 | grep -E '\[SM\]'      # empty = good
 ```
 
-That works across restarts. It does **not** survive an install being replaced —
-a manifest change or a new volume — because everything in `addons/` goes then.
+That works across restarts. It does **not** survive an install being replaced:
+a manifest change or a new volume, because everything in `addons/` goes then.
 To make it stick for good, either stage it in the overlay as above, or have the
 server load it from a directory the overlay does not touch:
 

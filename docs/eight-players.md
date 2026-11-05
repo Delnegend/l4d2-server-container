@@ -6,7 +6,7 @@ misattribute, so start here.
 
 | Limit | Value | What actually controls it |
 |---|---|---|
-| Client slots (MaxClients) | **18, hard-coded** | The engine. It overwrites `maxplayers` during start-up, so both `+maxplayers 8` and a `maxplayers 4` cvar are discarded — the log prints `maxplayers set to 18` either way. |
+| Client slots (MaxClients) | **18, hard-coded** | The engine. It overwrites `maxplayers` during start-up, so both `+maxplayers 8` and a `maxplayers 4` cvar are discarded; the log prints `maxplayers set to 18` either way. |
 | Co-op campaign survivors | **4** | The Steam **lobby reservation** the server registers. While a lobby cookie exists, the game caps campaigns at 4 and versus at 8. |
 
 Measured on build 10097: `+maxplayers 8` → `maxplayers set to 18`;
@@ -29,7 +29,7 @@ sv_maxplayers 8           // the player cap itself (-1..31)
 precache_all_survivors 1  // preload every survivor model, avoids crashes at 5+
 ```
 
-All three are real engine cvars once l4dtoolz is loaded — verified by passing a
+All three are real engine cvars once l4dtoolz is loaded, verified by passing a
 deliberately bogus cvar alongside them on the command line, which the engine
 correctly rejected while accepting these.
 
@@ -53,7 +53,7 @@ echo 'sv_maxplayers 12' >> data/left4dead2/cfg/server_custom.cfg
 
 ### Putting it back the way it was
 
-To go back to a stock 4-survivor campaign — no lobby changes at all — override
+To go back to a stock 4-survivor campaign, no lobby changes at all, override
 the one cvar that does the work:
 
 ```bash
@@ -70,12 +70,12 @@ both files. Use the cvar above.
 Lifting the cap on the server does not widen the L4D2 client lobby, which only
 ever offers four co-op slots. Friends need one of:
 
-- **Direct connect** — `mm_dedicated_force_servers <ip>:27015` in the client
+- **Direct connect**: `mm_dedicated_force_servers <ip>:27015` in the client
   console. No mod, works immediately, the `:27015` is optional.
-- **Steam group list** — set `STEAM_GROUP_ID` to the numeric group ID. The
+- **Steam group list**: set `STEAM_GROUP_ID` to the numeric group ID. The
   server then shows up in the group's server list for members, with no client
   mod at all. This is the least friction for a group that already exists.
-- **A workshop "8 player lobby" mutation** — only the person *hosting* the lobby
+- **A workshop "8 player lobby" mutation**: only the person *hosting* the lobby
   has to subscribe; everyone else connects as above.
 
 ## What is deliberately not in the image
@@ -93,7 +93,7 @@ broken upstream. One thing is actually in the way, and it is a single artifact:
 > [SM] Unable to load plugin "l4dmultislots.smx": Could not find required plugin "left4dhooks"
 > ```
 
-Everything else about those two is already satisfied — they load far enough for
+Everything else about those two is already satisfied; they load far enough for
 SourceMod to name the missing dependency, which only happens on the **1.12**
 branch that the images build. On the legacy 1.11 branch `l4dmultislots` dies
 earlier and less usefully, with `unsupported feature set; code is too new`.
@@ -103,7 +103,7 @@ earlier and less usefully, with `unsupported feature set; code is too new`.
 
 The current build (1.168/1.169) is a **forum attachment** on AlliedModders.
 That forum sits behind bot protection that returns HTTP 403 to both scripted
-downloads and headless browsers, and no AlliedModders mirror serves it — every
+downloads and headless browsers, and no AlliedModders mirror serves it; every
 `smdrop` path probed returns a soft 404. The last GitHub-hosted native is
 `peace-maker/DHooks2` v2.2.0 from **2021**, which predates *The Last Stand* and
 carries no matching `left4dhooks.smx`.
@@ -119,18 +119,18 @@ already bakes SourceMod.
   current (2026-07) community guide and should be treated as obsolete.
 - **`sm_cvar <name> <value>`** in `server.cfg` is the guide's way of setting
   plugin cvars, and it needs DHooks. For l4dtoolz's own cvars it is unnecessary
-  — plain names work, as verified above.
+  - plain names work, as verified above.
 - The `8 Slots Lobby Mod` (workshop 2754956355) and `CRAZY 8 PACK`
   (3054034434) are client-side addons. They change what a lobby displays, not
   what the server allows.
 
 ## References
 
-- [l4dtoolz README](https://github.com/lakwsh/l4dtoolz/blob/main/README_EN.md) —
+- [l4dtoolz README](https://github.com/lakwsh/l4dtoolz/blob/main/README_EN.md) -
   §1.1 the 18 default, §1.2 `sv_maxplayers`, §1.3 the lobby cap
 - [8+ Survivors In Coop guide](https://github.com/fbef0102/Game-Private_Plugin/tree/main/Tutorial_%E6%95%99%E5%AD%B8%E5%8D%80/English/Game/L4D2/8%2B_Survivors_In_Coop)
-  — the community-maintained plugin list, updated 2026-07-26
+  - the community-maintained plugin list, updated 2026-07-26
 - [L4D2 with 5+ players](https://jackzie.dev/posts/sourcemod/l4d2-and-5players/)
-  — independent walkthrough, the source of the 1.12 branch tip
-- [Left 4 DHooks Direct](https://forums.alliedmods.net/showthread.php?t=321696) —
+  - independent walkthrough, the source of the 1.12 branch tip
+- [Left 4 DHooks Direct](https://forums.alliedmods.net/showthread.php?t=321696) -
   the blocked thread

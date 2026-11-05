@@ -70,7 +70,7 @@ BLOCK_LOGON_ASSET = re.compile(r"^modified-plugins-sm-1\.12-(?P<date>\d{4}-\d{2}
 TIMEOUT = 30
 
 # The only hosts this check may reach. A branch name from the Dockerfile ends up
-# in these paths, so the host is checked after parsing — not by substring — and
+# in these paths, so the host is checked after parsing, not by substring, and
 # the token is attached to api.github.com alone. A substring test would hand the
 # token to any host that merely had "api.github.com" somewhere in the URL.
 ALLOWED_HOSTS = {

@@ -27,7 +27,7 @@ Two ways to move a deployment:
 
 The first is enough for a game update. The second is how the default catches up.
 
-Once the download has happened, restart is instant — nothing is re-fetched.
+Once the download has happened, restart is instant; nothing is re-fetched.
 Changing the manifest is what triggers the next download.
 
 > Steam can withdraw an old manifest id. A long-lived pin is therefore a
@@ -52,7 +52,7 @@ If any of them is stale, the workflow opens **one** pull request that rewrites
 the `ARG` defaults and the matching rows in
 [architecture.md](architecture.md#build-arguments) with
 `scripts/apply-bump.py`, then enables auto-merge on it. The pull request lands
-when `Check (just verify)` goes green, after a maintainer approves that run —
+when `Check (just verify)` goes green, after a maintainer approves that run;
 GitHub holds runs raised by the bot's own pull requests. The check is not a
 lint: it downloads both pinned manifests, boots the server, checks the A2S
 self-check and the plugin stack, and fails on any `Unknown command` the game
@@ -78,7 +78,7 @@ as a status board.
 Run it by hand from **Actions → Upstream updates → Run workflow**.
 
 Merging a bump does **not** publish. It lands on `main`, and releasing is a
-separate run — the Sunday cron or a button press — see
+separate run, the Sunday cron or a button press; see
 [When it runs](#when-it-runs).
 
 ## Updating MetaMod and SourceMod
@@ -108,14 +108,14 @@ podman build --build-arg L4D_PLUGINS_REF=<sha> -t localhost/l4d2:dev .
 ```
 
 Edit the `ARG L4D_PLUGINS_REF` line **and** its row in
-[architecture.md](architecture.md#build-arguments) — `just check` fails if they
+[architecture.md](architecture.md#build-arguments): `just check` fails if they
 disagree.
 
 `left4dhooks` is different: it is a forum attachment, not a package, so it is
 vendored at `assets/left4dhooks.zip` and verified against
 `LEFT4DHOOKS_SHA256`. No upstream feed exists, so no workflow can watch it.
-Replacing it stays a manual two-step — drop the new archive in, update the
-checksum — which the build enforces rather than trusting.
+Replacing it stays a manual two-step: drop the new archive in, update the
+checksum, which the build enforces rather than trusting.
 
 ## Updating l4dtoolz
 
@@ -130,7 +130,7 @@ podman build \
 Both arguments must match a real release asset; the filename the build expects
 is `l4dtoolz-<version>-<build>.zip`. A release that ships only the rolling
 `l4dtoolz-<version>-main.zip` cannot be pinned and is skipped by the update
-workflow — the current pin is in the Dockerfile as `ARG L4DTOOLZ_VERSION`.
+workflow; the current pin is in the Dockerfile as `ARG L4DTOOLZ_VERSION`.
 
 ## Updating the No-Steam-logon bypass
 
@@ -155,13 +155,13 @@ reads the Conventional Commits since the last tag:
 
 | Commit prefix | Version moves |
 |---|---|
-| `feat:` | minor — `1.0.3` → `1.1.0` |
-| `fix:`, `refactor:`, `perf:`, `test:`, `build:` | patch — `1.0.3` → `1.0.4` |
-| anything breaking (`BREAKING CHANGE:`) | major — `1.0.3` → `2.0.0` |
+| `feat:` | minor: `1.0.3` → `1.1.0` |
+| `fix:`, `refactor:`, `perf:`, `test:`, `build:` | patch: `1.0.3` → `1.0.4` |
+| anything breaking (`BREAKING CHANGE:`) | major: `1.0.3` → `2.0.0` |
 | `docs:`, `ci:`, `chore:` | **nothing** |
 
 `build:` counts as a patch rather than as nothing, because this repository uses
-that prefix for changes that really do ship inside the image — the Dockerfile,
+that prefix for changes that really do ship inside the image: the Dockerfile,
 the mod stack, the overlay.
 
 So the version is a fact about the commits rather than a claim someone made
@@ -183,14 +183,14 @@ So the decision is two separate ones:
 
 | | Decided by | You can override? |
 |---|---|---|
-| **What version** | the commit messages | no — nothing in the workflow accepts a number |
-| **Whether to ship** | the Sunday cron, or you pressing the button | yes — dispatch with a SHA for a test build, or a tag to republish a ref |
+| **What version** | the commit messages | no: nothing in the workflow accepts a number |
+| **Whether to ship** | the Sunday cron, or you pressing the button | yes: dispatch with a SHA for a test build, or a tag to republish a ref |
 
 If a run publishes nothing, the commits since the last tag did not earn a bump.
-Fix that in the commit message — `git commit --amend` to `fix:` rather than
-`chore:` — rather than looking for a number to type. A week whose commits are
+Fix that in the commit message: `git commit --amend` to `fix:` rather than
+`chore:`, rather than looking for a number to type. A week whose commits are
 all `docs:`, `ci:` or `chore:` releases nothing, and the run is configured to
-end green and silent rather than fail on it — that is what maintenance mode
+end green and silent rather than fail on it; that is what maintenance mode
 means here: a Sunday with no bump-worthy commit ships no image.
 
 Because the `prepare` job creates and pushes the tag *before* the build starts,
@@ -207,7 +207,7 @@ without touching the version.
 | `latest` | the newest release |
 
 One published image, exactly two tags: the exact version and `latest`. No
-rolling `1.0` or `1` tags, and no per-target tags — so there is nothing
+rolling `1.0` or `1` tags, and no per-target tags; so there is nothing
 ambiguous for a deployment to latch onto by accident. `just check` fails the
 build if that ever changes, so the policy cannot drift quietly.
 

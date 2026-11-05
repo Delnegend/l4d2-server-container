@@ -11,13 +11,13 @@ Copy `.env.example` to `.env` and edit it. Compose passes each of these through.
 
 | Variable | Default | Renders / does |
 |---|---|---|
-| `GAME_MANIFEST` | the image's `ARG` | Steam depot manifest id to install. Empty uses the version baked into the image — see [maintenance.md](maintenance.md#updating-the-game). |
+| `GAME_MANIFEST` | the image's `ARG` | Steam depot manifest id to install. Empty uses the version baked into the image; see [maintenance.md](maintenance.md#updating-the-game). |
 | `SERVER_MODE` | `8players` | Mode: `8players` (default 8-player co-op), `sourcemod` (4-player with admin tools), or `vanilla` (pure 4-player). |
 | `PORT` | `27015` | `-port` |
 | `STEAM_PORT` | `26901` | `-sport` |
 | `SERVER_NAME` | `Left 4 Dead 2 Dedicated Server` | `hostname` |
 | `RCON_PASSWORD` | `ChangeThisRcon123` | `rcon_password`. Change it. |
-| `SERVER_PASSWORD` | `""` | `sv_password`. Leave empty — see below. |
+| `SERVER_PASSWORD` | `""` | `sv_password`. Leave empty; see below. |
 | `DEFAULT_MAP` | `c1m1_hotel` | `+map` |
 | `STEAM_GROUP_ID` | `""` | `sv_steamgroup`. Numeric ID, **not** the group URL. Empty disables group advertising. |
 | `STEAM_GROUP_EXCLUSIVE` | `0` | `sv_steamgroup_exclusive`. `1` hides the server until a player joins it from a lobby. |
@@ -25,7 +25,7 @@ Copy `.env.example` to `.env` and edit it. Compose passes each of these through.
 | `SV_PURE` | `0` | `sv_pure` |
 | `ADMIN_USERS` | `""` | Comma-separated SteamIDs granted root admin in SourceMod (e.g. `STEAM_1:0:12345678, 76561198012345678`). |
 | `BLOCK_NO_STEAM_LOGON` | `1` | Loads the plugin that stops the engine dropping players with "No Steam logon". `0` leaves it unlinked; SourceMod modes only, `vanilla` never loads plugins. |
-| `EXTRA_ARGS` | `""` | Appended to the `srcds_run` command line. Certain flags are rejected at startup — see [troubleshooting.md](troubleshooting.md#rejected-flags). |
+| `EXTRA_ARGS` | `""` | Appended to the `srcds_run` command line. Certain flags are rejected at startup; see [troubleshooting.md](troubleshooting.md#rejected-flags). |
 
 ### Admin users
 
@@ -65,7 +65,7 @@ So:
 - **Do not edit `server.cfg`.** It is overwritten every start; the entrypoint
   logs a warning when it notices your edits are about to be discarded.
 - **Do edit `server_custom.cfg`.** It is created on first start, never
-  overwritten, and appended verbatim — later values override earlier ones, so
+  overwritten, and appended verbatim; later values override earlier ones, so
   you can shadow anything the image sets:
 
   ```bash
@@ -79,7 +79,7 @@ So:
 
 ## Cvars the engine does not have
 
-Do not add these — the engine logs `Unknown command` for each and does nothing:
+Do not add these: the engine logs `Unknown command` for each and does nothing:
 
 | Cvar | Note |
 |---|---|
@@ -88,7 +88,7 @@ Do not add these — the engine logs `Unknown command` for each and does nothing
 | `sv_hibernate_when_empty` | Absent; L4D2 hibernates automatically and still answers A2S, so nothing is needed to keep an empty server listed. |
 
 A harmless one you will see in every log is
-`Unknown command "mat_bloom_scalefactor_scalar"` — the engine asking for a
+`Unknown command "mat_bloom_scalefactor_scalar"`: the engine asking for a
 console variable from its own config. Nothing to do about it.
 
 If you are unsure whether a cvar exists, pass it as a launch argument
@@ -111,13 +111,13 @@ stock content rather than replacing it.
 `data/left4dead2/addons/sourcemod` and `.../metamod` are refreshed from the
 overlay the image carries on every start, so an image update does reach a volume
 that already has the right game build. Files you add under those names survive
-in the meantime — the copy overwrites same-named files and deletes nothing — but
+in the meantime, the copy overwrites same-named files and deletes nothing, but
 they are **not** durable: an install swap removes the whole of `addons/`,
 `left4dead2/cfg` being the only exception. Installing a plugin needs one
 deliberate step first.
 
-How to add a plugin, a MetaMod extension, or a custom map — and when a mod
-belongs in the image rather than on the volume — is in
+How to add a plugin, a MetaMod extension, or a custom map, and when a mod
+belongs in the image rather than on the volume, is in
 [mods.md](mods.md).
 
 ## What is not configurable, and why

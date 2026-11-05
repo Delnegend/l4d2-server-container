@@ -65,7 +65,7 @@ This only affects the push. Layers in podman's local overlay store keep the
 container's own default format, so `podman images` reports a local size that is
 not the same thing as the transferred size.
 
-Anything that pulls the image needs a runtime that understands zstd layers —
+Anything that pulls the image needs a runtime that understands zstd layers:
 containerd 1.7+, Docker 20.10+, podman 3+. If that ever stops being true, the
 fallback is `compression=gzip` in the workflow and
 `L4D2_COMPRESSION=gzip just push`.
@@ -76,8 +76,8 @@ DepotDownloader 3.4.0 handles Valve's `freetodownload` flow anonymously in the `
 
 | Depot | Files | What it is | Pinned by |
 |---|---|---|---|
-| `222863` | 674 | the launcher — `srcds_run`, `srcds_linux` | `LAUNCHER_MANIFEST` |
-| `222861` | 116 977 | the game — `left4dead2/`, `bin/`, `platform/` | `GAME_MANIFEST` |
+| `222863` | 674 | the launcher: `srcds_run`, `srcds_linux` | `LAUNCHER_MANIFEST` |
+| `222861` | 116 977 | the game: `left4dead2/`, `bin/`, `platform/` | `GAME_MANIFEST` |
 
 DepotDownloader takes a single `-depot` per run, so the two write disjoint
 paths in sequence. The launcher goes first because it is small and finishes in
@@ -92,7 +92,7 @@ manifest chunks are fetched concurrently. The tool's own default is 8.
 | Argument | Default | Effect |
 |---|---|---|
 | `GAME_MANIFEST` | `48279775…` | Depot 222861 manifest: the game, 116 977 files, ~9.5 GB. What the entrypoint downloads on the first start of a volume, and the single value that decides whether it downloads at all. Override per deployment with `GAME_MANIFEST` in `.env`. |
-| `LAUNCHER_MANIFEST` | `86824416…` | Depot 222863 manifest: 674 files, `srcds_run` and `srcds_linux`. Steam versions this depot independently of the game one, so it needs its own pin — pinning only `GAME_MANIFEST` would leave the server binary unpinned. |
+| `LAUNCHER_MANIFEST` | `86824416…` | Depot 222863 manifest: 674 files, `srcds_run` and `srcds_linux`. Steam versions this depot independently of the game one, so it needs its own pin; pinning only `GAME_MANIFEST` would leave the server binary unpinned. |
 | `APP_ID` | `222860` | Steam app the dedicated server is published under. |
 | `GAME_DEPOT` | `222861` | The linux dedicated server depot. |
 | `LAUNCHER_DEPOT` | `222863` | The launcher depot. The SDK depot is never selected: `-os linux` does not pick it. |
@@ -106,7 +106,7 @@ manifest chunks are fetched concurrently. The tool's own default is 8.
 | `SERVER_VERSION` | `dev` | Stamped as `org.opencontainers.image.version`. |
 | `DEBIAN_IMAGE` | `debian:trixie-slim` | Base distribution. |
 
-`SOURCEMOD_BRANCH=1.12` is sourcemod.net's **stable** channel — its dev channel
+`SOURCEMOD_BRANCH=1.12` is sourcemod.net's **stable** channel; its dev channel
 is 1.13, and the 1.11 line is kept as a legacy branch. It is also what the
 5+/8-player plugins are compiled against; see
 [eight-players.md](eight-players.md).
@@ -139,7 +139,7 @@ This keeps the host volume small (~50 MB) while allowing full customization of c
 ### One engine quirk worth knowing
 
 The engine resolves `exec` (as in `exec somefile.cfg`) against the **install
-root** — the directory holding the `srcds_run` binary. `server.cfg.template` does
+root**: the directory holding the `srcds_run` binary. `server.cfg.template` does
 not use `exec` anyway, so nothing changes; see
 [configuration.md](configuration.md#config-file-precedence).
 ## Runtime

@@ -140,21 +140,21 @@ jobs:
           `scripts/apply-bump.py` rewrote the `ARG` defaults and the matching
           rows in `docs/architecture.md`.
 
-          - **Valve** — `GAME_MANIFEST` (depot 222861, the game) and
+          - **Valve**: `GAME_MANIFEST` (depot 222861, the game) and
             `LAUNCHER_MANIFEST` (depot 222863, which is where `srcds_run`
             lives). The entrypoint downloads both on the first start of a
             volume, and re-downloads when either one changes.
-          - **l4dtoolz** — the newest stable release carrying a
+          - **l4dtoolz**: the newest stable release carrying a
             `l4dtoolz-<version>-<build>.zip`.
-          - **5+ plugins** — the head commit of
+          - **5+ plugins**: the head commit of
             [fbef0102/L4D1_2-Plugins](https://github.com/fbef0102/L4D1_2-Plugins).
-          - **No-Steam-logon bypass** — the newest release shipping a
+          - **No-Steam-logon bypass**: the newest release shipping a
             `modified-plugins-sm-1.12-<date>.zip`.
 
           `just verify` downloads both pinned manifests, boots the server and
           checks the plugin stack, so a green `Check (just verify)` is the
           proof. Merging does not publish: it lands on `main`, and releasing is
-          a separate run of `release.yaml` — the Sunday cron or a dispatch.
+          a separate run of `release.yaml`: the Sunday cron or a dispatch.
 
           MetaMod and SourceMod are not pinned and need nothing here. The
           current drops on `${{ needs.resolve.outputs.sourcemod_branch }}` are

@@ -31,11 +31,11 @@ Look for `Self-check OK: server answers A2S queries` in the log to confirm the s
 
 ## Highlights
 
-- **Instant startup** — The ~10 GB game install is baked into the base image layer, booting within seconds without runtime downloads.
-- **8-Player co-op out of the box** — Pre-configured with SourceMod, MetaMod, l4dtoolz, and the 5+ survivor plugin stack.
-- **Clean host storage** — Game files stay read-only in the image; your host volume only stores ~50 MB of configs, maps, and logs.
-- **Flexible server modes** — Set `SERVER_MODE` to `8players` (default), `sourcemod` (4-player with admin tools), or `vanilla` (pure 4-player stock server).
-- **Unprivileged security** — Runs safely as standard non-root user `steam` (UID 1000) with automatic visibility self-checks.
+- **Instant startup**: The ~10 GB game install is baked into the base image layer, booting within seconds without runtime downloads.
+- **8-Player co-op out of the box**: Pre-configured with SourceMod, MetaMod, l4dtoolz, and the 5+ survivor plugin stack.
+- **Clean host storage**: Game files stay read-only in the image; your host volume only stores ~50 MB of configs, maps, and logs.
+- **Flexible server modes**: Set `SERVER_MODE` to `8players` (default), `sourcemod` (4-player with admin tools), or `vanilla` (pure 4-player stock server).
+- **Unprivileged security**: Runs safely as standard non-root user `steam` (UID 1000) with automatic visibility self-checks.
 
 ## Common Options
 
@@ -63,12 +63,12 @@ For build stages, layer caching strategy, and runtime symlink joining, see **[Ar
 
 ## Documentation
 
-- **[Architecture](docs/architecture.md)** — Multi-stage build graph, cache optimization, and volume symlinking.
-- **[Configuration](docs/configuration.md)** — Environment variables, config precedence, and custom map setups.
-- **[8-Player Co-op](docs/eight-players.md)** — How l4dtoolz, left4dhooks, and survivor slots work.
-- **[Modding](docs/mods.md)** — Adding plugins, campaign VPKs, and volume persistence rules.
-- **[Troubleshooting](docs/troubleshooting.md)** — Diagnosing A2S discovery issues, rejected flags, and boot errors.
-- **[Maintenance](docs/maintenance.md)** — Upstream updates, image builds, and release workflows.
+- **[Architecture](docs/architecture.md)**: Multi-stage build graph, cache optimization, and volume symlinking.
+- **[Configuration](docs/configuration.md)**: Environment variables, config precedence, and custom map setups.
+- **[8-Player Co-op](docs/eight-players.md)**: How l4dtoolz, left4dhooks, and survivor slots work.
+- **[Modding](docs/mods.md)**: Adding plugins, campaign VPKs, and volume persistence rules.
+- **[Troubleshooting](docs/troubleshooting.md)**: Diagnosing A2S discovery issues, rejected flags, and boot errors.
+- **[Maintenance](docs/maintenance.md)**: Upstream updates, image builds, and release workflows.
 
 ## License
 
