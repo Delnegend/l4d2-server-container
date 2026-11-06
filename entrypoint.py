@@ -219,13 +219,42 @@ def fetch_latest_release() -> dict | None:
     return None
 
 
-def download_file(url: str, dest: Path) -> None:
+def download_file(url: str, dest: Path, total_size: int | None = None) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
-    res = subprocess.run(
-        ["curl", "-#", "-fSL", "--retry", "3", "--retry-delay", "2", url, "-o", str(dest)]
-    )
-    if res.returncode != 0:
-        fail(f"Failed to download {dest.name} from {url}.")
+    cmd = ["curl", "-fsSL", "--retry", "3", "--retry-delay", "2", url]
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    downloaded = 0
+    last_pct = -1
+    last_time = time.time()
+
+    with open(dest, "wb") as f:
+        while True:
+            chunk = p.stdout.read(1024 * 1024) if p.stdout else b""
+            if not chunk:
+                break
+            f.write(chunk)
+            downloaded += len(chunk)
+            if total_size and total_size > 0:
+                pct = int((downloaded / total_size) * 100)
+                now = time.time()
+                if (pct != last_pct and pct % 10 == 0) or (now - last_time >= 3.0):
+                    last_pct = pct
+                    last_time = now
+                    bar_len = 25
+                    filled = int(bar_len * downloaded / total_size)
+                    bar = "=" * filled + "-" * (bar_len - filled)
+                    mb_cur = downloaded / (1024 * 1024)
+                    mb_tot = total_size / (1024 * 1024)
+                    log(f"  [{bar}] {pct:3d}% ({mb_cur:.1f}/{mb_tot:.1f} MB)")
+
+    p.wait()
+    if p.returncode != 0:
+        err = p.stderr.read().decode("utf-8", "replace").strip() if p.stderr else ""
+        fail(f"Failed to download {dest.name} from {url}: {err}")
+    elif total_size and total_size > 0 and last_pct != 100:
+        bar = "=" * 25
+        mb_tot = total_size / (1024 * 1024)
+        log(f"  [{bar}] 100% ({mb_tot:.1f}/{mb_tot:.1f} MB)")
 
 def verify_checksums(download_dir: Path) -> None:
     sums_file = download_dir / "sha256sums.txt"
@@ -367,7 +396,7 @@ def ensure_server_files(data_dir: Path) -> None:
                 part_idx += 1
             else:
                 log("Downloading checksums (sha256sums.txt)...")
-            download_file(a["browser_download_url"], dest)
+            download_file(a["browser_download_url"], dest, expected_size)
         verify_checksums(download_dir)
         extract_server_archive(download_dir, data_dir)
         marker_file.write_text(f"{target_tag}\n", encoding="utf-8")
