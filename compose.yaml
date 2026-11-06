@@ -33,6 +33,5 @@ services:
       # default would override the value the image bakes in. The image's ARG
       # is the default and the .env file above is the override.
     volumes:
-      # Persistent configuration, custom maps, and server logs.
-      # The ~10 GB game install is baked into the image.
+      # Server files, persistent configuration, custom maps, and logs.
       - ./data:/data

@@ -8,6 +8,7 @@ and launches the server with visibility self-checks.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 from pathlib import Path
 import re
@@ -18,15 +19,13 @@ import struct
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
 
-DATA_DIR = Path("/data")
-GAME_DIR = Path(os.environ.get("GAME_DIR", "/opt/l4d2"))
+DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
 OVERLAY_DIR = Path(os.environ.get("OVERLAY_DIR", "/opt/l4d2-overlay"))
-
-WRITABLE_DIRS = ["cfg", "addons", "maps", "scripts"]
-WRITABLE_GAME_FILES = ["motd.txt", "mapcycle.txt", "missioncycle.txt", "maplist.txt"]
-WRITABLE_DATA_FILES = ["console.log"]
-
+RELEASE_REPO = "Delnegend/l4d2-server-container"
 EIGHT_PLAYER_FILES = {
     "l4dtoolz.so",
     "l4dtoolz.vdf",
@@ -84,23 +83,6 @@ def reject_flag(extra_args: str, flag: str, *reasons: str) -> None:
             f"Remove '{flag}' from EXTRA_ARGS and restart the container.",
         )
 
-
-def mirror_tree(src: Path, dst: Path) -> None:
-    """Mirror one directory level using symlinks.
-
-    Existing real files/directories in dst are never overwritten.
-    Dangling symlinks from removed source files are cleaned up.
-    """
-    dst.mkdir(parents=True, exist_ok=True)
-    if not src.is_dir():
-        return
-    for entry in src.iterdir():
-        target = dst / entry.name
-        if target.is_symlink() and not target.exists():
-            target.unlink()
-        if target.exists() or target.is_symlink():
-            continue
-        target.symlink_to(entry)
 
 
 def find_candidate_ips(port: int) -> set[str]:
@@ -217,47 +199,185 @@ def run_a2s_self_check(port: int, attempts: int = 12, delay: float = 10.0) -> bo
     return False
 
 
-def setup_game_files(game_dir: Path, data_dir: Path) -> Path:
+def fetch_latest_release() -> dict | None:
+    url = f"https://api.github.com/repos/{RELEASE_REPO}/releases?per_page=10"
+    headers = {
+        "User-Agent": "l4d2-server-container-bootstrap",
+        "Accept": "application/vnd.github+json",
+    }
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        releases = json.loads(resp.read().decode("utf-8", "replace"))
+    for r in releases:
+        if r.get("tag_name", "").startswith("vanilla-"):
+            return r
+    return None
+
+
+def download_file(url: str, dest: Path) -> None:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if shutil.which("curl"):
+        res = subprocess.run(
+            ["curl", "-fsSL", "--retry", "3", "--retry-delay", "2", url, "-o", str(dest)]
+        )
+        if res.returncode != 0:
+            fail(f"Failed to download {dest.name} from {url}.")
+        return
+
+    req = urllib.request.Request(
+        url, headers={"User-Agent": "l4d2-server-container-bootstrap"}
+    )
+    with urllib.request.urlopen(req, timeout=60) as response, open(dest, "wb") as out_file:
+        shutil.copyfileobj(response, out_file, length=1024 * 1024)
+
+
+def verify_checksums(download_dir: Path) -> None:
+    sums_file = download_dir / "sha256sums.txt"
+    if not sums_file.is_file():
+        return
+
+    for line in sums_file.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split()
+        if len(parts) >= 2:
+            expected_hash, fname = parts[0], Path(parts[1]).name
+            file_path = download_dir / fname
+            if file_path.is_file():
+                h = hashlib.sha256()
+                with open(file_path, "rb") as f:
+                    while chunk := f.read(1024 * 1024):
+                        h.update(chunk)
+                if h.hexdigest().lower() != expected_hash.lower():
+                    fail(
+                        f"Checksum mismatch for {fname}!",
+                        f"Expected: {expected_hash}",
+                        f"Actual:   {h.hexdigest()}",
+                    )
+
+
+def extract_server_archive(download_dir: Path, data_dir: Path) -> None:
+    parts = sorted(download_dir.glob("*.tar.zst.part*"))
+    single = sorted(download_dir.glob("*.tar.zst"))
+
+    if parts:
+        part_paths = " ".join(shlex.quote(str(p)) for p in parts)
+        cmd = f"cat {part_paths} | tar --zstd -xf - -C {shlex.quote(str(data_dir))}"
+        res = subprocess.run(cmd, shell=True)
+        if res.returncode != 0:
+            fail(f"Extraction failed with exit code {res.returncode}.")
+    elif single:
+        cmd = ["tar", "--zstd", "-xf", str(single[0]), "-C", str(data_dir)]
+        res = subprocess.run(cmd)
+        if res.returncode != 0:
+            fail(f"Extraction failed with exit code {res.returncode}.")
+    else:
+        fail("No .tar.zst archive found in downloaded assets.")
+
+    for bin_name in ("srcds_run", "srcds_linux"):
+        p = data_dir / bin_name
+        if p.is_file():
+            p.chmod(0o755)
+
+
+def ensure_server_files(data_dir: Path) -> None:
+    marker_file = data_dir / ".vanilla_version"
+    installed_tag = (
+        marker_file.read_text(encoding="utf-8").strip() if marker_file.is_file() else ""
+    )
+
+    if not installed_tag and (data_dir / "left4dead2" / "steam.inf").is_file():
+        inf_text = (data_dir / "left4dead2" / "steam.inf").read_text(encoding="utf-8")
+        m = re.search(r"^[Pp]atch[Vv]ersion=(.*)$", inf_text, re.M)
+        if m:
+            installed_tag = f"vanilla-{m.group(1).strip()}"
+
+    has_installed = (data_dir / "srcds_run").is_file() and (data_dir / "left4dead2").is_dir()
+
+    log(f"Checking for Left 4 Dead 2 server updates from {RELEASE_REPO}...")
+    release: dict | None = None
+    try:
+        release = fetch_latest_release()
+    except Exception as e:
+        if has_installed:
+            log(
+                f"WARNING: Could not check for updates ({e}). "
+                f"Continuing with installed version ({installed_tag or 'unknown'})."
+            )
+            return
+        fail(
+            f"Failed to check releases on {RELEASE_REPO}: {e}",
+            "",
+            f"No server install found in {data_dir} and GitHub could not be reached.",
+        )
+
+    if not release:
+        if has_installed:
+            log(f"No vanilla release found on {RELEASE_REPO}. Continuing with installed version.")
+            return
+        fail(
+            f"No server install found in {data_dir}, and no 'vanilla-*' releases exist on {RELEASE_REPO}.",
+            "",
+            "Run the Upstream Vanilla Release workflow on GitHub to package and draft the server files.",
+        )
+
+    target_tag = release["tag_name"]
+    if has_installed and installed_tag == target_tag:
+        log(f"Server files in {data_dir} are up to date ({target_tag}).")
+        return
+
+    if has_installed:
+        log(f"Updating server files in {data_dir}: {installed_tag or 'unknown'} -> {target_tag}...")
+    else:
+        log(f"Installing vanilla server ({target_tag}) into {data_dir}...")
+
+    assets = [
+        a for a in release.get("assets", [])
+        if a["name"].endswith(".tar.zst")
+        or ".tar.zst.part" in a["name"]
+        or a["name"] == "sha256sums.txt"
+    ]
+    if not any(".tar.zst" in a["name"] for a in assets):
+        fail(f"Release {target_tag} contains no .tar.zst archive assets.")
+
+    download_dir = data_dir / ".download"
+    download_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        for a in assets:
+            dest = download_dir / a["name"]
+            expected_size = a.get("size")
+            if dest.is_file() and expected_size and dest.stat().st_size == expected_size:
+                continue
+            download_file(a["browser_download_url"], dest)
+
+        verify_checksums(download_dir)
+        extract_server_archive(download_dir, data_dir)
+        marker_file.write_text(f"{target_tag}\n", encoding="utf-8")
+    finally:
+        shutil.rmtree(download_dir, ignore_errors=True)
+
+    log(f"Server files ready ({target_tag}).")
+
+
+def setup_game_files(data_dir: Path) -> Path:
     game_data_dir = data_dir / "left4dead2"
-    log(f"Linking the image install ({game_dir}) into {data_dir}...")
-    mirror_tree(game_dir, data_dir)
+    for name in ["cfg", "addons", "maps", "scripts"]:
+        (game_data_dir / name).mkdir(parents=True, exist_ok=True)
 
-    if game_data_dir.is_symlink():
-        game_data_dir.unlink()
-    game_data_dir.mkdir(parents=True, exist_ok=True)
-    mirror_tree(game_dir / "left4dead2", game_data_dir)
+    console_log = data_dir / "console.log"
+    if not console_log.exists():
+        console_log.touch()
 
-    for name in WRITABLE_DIRS:
-        src_dir = game_dir / "left4dead2" / name
-        src_dir.mkdir(parents=True, exist_ok=True)
-        dst_dir = game_data_dir / name
-        if dst_dir.is_symlink():
-            dst_dir.unlink()
-        dst_dir.mkdir(parents=True, exist_ok=True)
-        mirror_tree(src_dir, dst_dir)
-
-    for name in WRITABLE_GAME_FILES:
-        target = game_data_dir / name
-        if target.is_symlink():
-            target.unlink()
-            src = game_dir / "left4dead2" / name
-            if src.is_file():
-                shutil.copy2(src, target)
-
-    for name in WRITABLE_DATA_FILES:
-        target = data_dir / name
-        if target.is_symlink():
-            target.unlink()
-        if not target.exists():
-            target.touch()
-    # Link steamclient.so to ~/.steam/sdk32 for Valve Steam API
     home = Path(os.environ.get("HOME", "/home/steam"))
     sdk32 = home / ".steam" / "sdk32"
     sdk32.mkdir(parents=True, exist_ok=True)
     steamclient_link = sdk32 / "steamclient.so"
     if steamclient_link.is_symlink() or steamclient_link.exists():
         steamclient_link.unlink()
-    steamclient_link.symlink_to(data_dir / "bin" / "steamclient.so")
+    steamclient_so = data_dir / "bin" / "steamclient.so"
+    if steamclient_so.is_file():
+        steamclient_link.symlink_to(steamclient_so)
 
     return game_data_dir
 
@@ -539,20 +659,14 @@ def main() -> None:
             "Remove it from EXTRA_ARGS and restart the container.",
         )
 
-    if not (GAME_DIR / "left4dead2").is_dir():
-        fail(
-            f"No server install at {GAME_DIR}.",
-            "",
-            "This image bakes the game files in, so the install is missing from the",
-            "image itself. Check that the image was built properly.",
-        )
+    # Ensure server files are present and updated to latest release in DATA_DIR
+    ensure_server_files(DATA_DIR)
 
     if game_manifest:
-        log(f"Game manifest: {game_manifest} (baked in image).")
+        log(f"Game manifest: {game_manifest}.")
 
     # Game files & directory structure
-    game_data_dir = setup_game_files(GAME_DIR, DATA_DIR)
-
+    game_data_dir = setup_game_files(DATA_DIR)
     # Mod stack
     setup_mods(
         server_mode, OVERLAY_DIR, game_data_dir, admin_users, block_no_steam_logon

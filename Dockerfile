@@ -1,15 +1,15 @@
 # syntax=docker/dockerfile:1.7
 #
-# Multi-stage build with game baked in and optimized layer caching.
+# Lean multi-stage build for Left 4 Dead 2 Dedicated Server.
+# Server files are downloaded into /data on container startup from GitHub release
+# assets (vanilla-<version>), keeping the image lean (~150 MB).
 #
 # Stages, in the order they layer:
 #
-#   fetch    - one-shot DepotDownloader stage, downloads game files (never published)
-#   base     - vanilla dedicated server, game files baked in at build time
+#   base     - lean runtime with Debian, 32-bit runtime libs, curl, tar, zstd, and python3
 #   mods     - stages the 8-player mod overlay independently for cache efficiency
 #   vanilla  - FROM base, adds entrypoint and configuration (vanilla 4-player server)
 #   server   - FROM vanilla, adds the mod overlay (published 8-player default server)
-#
 #   podman build --target vanilla -t l4d2:vanilla .
 #   podman build --target server  -t l4d2:latest  .
 #
@@ -41,87 +41,42 @@ ARG BLOCK_LOGON_RELEASE=release-2026-09-06
 ARG BLOCK_LOGON_ASSET=modified-plugins-sm-1.12-2026-09-06.zip
 
 # ===========================================================================
-# fetch - one-shot downloader stage, never published
-# ===========================================================================
-FROM ${DEBIAN_IMAGE} AS fetch
-
-ARG APP_ID
-ARG GAME_DEPOT
-ARG GAME_MANIFEST
-ARG LAUNCHER_DEPOT
-ARG LAUNCHER_MANIFEST
-ARG DEPOT_DOWNLOADER_VERSION
-ARG MAX_DOWNLOADS
-
-ENV DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates curl unzip && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN set -eux; \
-    mkdir -p /opt/depotdownloader /opt/l4d2; \
-    curl -fsSL "https://github.com/SteamRE/DepotDownloader/releases/download/DepotDownloader_${DEPOT_DOWNLOADER_VERSION}/DepotDownloader-linux-x64.zip" -o /tmp/dd.zip; \
-    unzip -q /tmp/dd.zip -d /opt/depotdownloader; \
-    chmod +x /opt/depotdownloader/DepotDownloader; \
-    rm -f /tmp/dd.zip
-
-# Pinned depot downloads into /opt/l4d2.
-# Cache mount preserves manifest chunks across builds if re-run.
-RUN --mount=type=cache,target=/root/.local/share/DepotDownloader \
-    /opt/depotdownloader/DepotDownloader \
-        -app "${APP_ID}" \
-        -depot "${LAUNCHER_DEPOT}" \
-        -manifest "${LAUNCHER_MANIFEST}" \
-        -dir /opt/l4d2 \
-        -max-downloads "${MAX_DOWNLOADS}" && \
-    /opt/depotdownloader/DepotDownloader \
-        -app "${APP_ID}" \
-        -depot "${GAME_DEPOT}" \
-        -manifest "${GAME_MANIFEST}" \
-        -dir /opt/l4d2 \
-        -max-downloads "${MAX_DOWNLOADS}" && \
-    rm -rf /opt/l4d2/.DepotDownloader
-
-# ===========================================================================
-# base - the vanilla server install baked in
+# base - lean dedicated server runtime dependencies
 # ===========================================================================
 FROM ${DEBIAN_IMAGE} AS base
 
 ARG SERVER_VERSION
 
 LABEL maintainer="Homelab Admin"
-LABEL description="Left 4 Dead 2 Dedicated Server, game files baked in at build time"
+LABEL description="Left 4 Dead 2 Dedicated Server, lean runtime"
 LABEL org.opencontainers.image.version="${SERVER_VERSION}"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install 32-bit runtime dependencies for Source Engine
+# Install 32-bit runtime dependencies for Source Engine and release downloader tools
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
+        curl \
         lib32gcc-s1 \
         lib32stdc++6 \
         libc6:i386 \
         libcurl4-gnutls-dev:i386 \
         locales \
         python3 \
+        tar \
+        zstd \
     && rm -rf /var/lib/apt/lists/*
 
-# The steam user is created *before* the install lands, so the COPY can set
-# ownership directly. A recursive chown afterwards would restamp all metadata
-# and duplicate the entire ~10 GB tree into a second layer.
 RUN useradd -m -u 1000 -s /bin/bash steam && \
-    mkdir -p /data
-
-COPY --from=fetch --chown=steam:steam /opt/l4d2 /opt/l4d2
+    mkdir -p /data && \
+    chown -R steam:steam /data
 
 USER steam
 WORKDIR /data
 
 EXPOSE 27015/tcp 27015/udp 26901/udp
-
 # ===========================================================================
 # mods - downloads and stages the 8-player mod overlay independently
 # ===========================================================================
