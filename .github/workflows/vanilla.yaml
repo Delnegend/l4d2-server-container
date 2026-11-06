@@ -1,0 +1,77 @@
+name: Upstream Vanilla Release
+
+on:
+  schedule:
+    # 03:00 UTC daily (1 hour after upstream pin checks at 02:00 UTC)
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force download and release creation even if build already exists'
+        required: false
+        type: boolean
+        default: false
+      draft:
+        description: 'Create as a draft release'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: vanilla-release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Check Upstream L4D2 Server
+    runs-on: ubuntu-latest
+    outputs:
+      release_needed: ${{ steps.check.outputs.release_needed }}
+      build_id: ${{ steps.check.outputs.build_id }}
+      game_manifest: ${{ steps.check.outputs.game_manifest }}
+      launcher_manifest: ${{ steps.check.outputs.launcher_manifest }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Check for new official server release
+        id: check
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          FORCE_FLAG=""
+          if [ "$FORCE" = "true" ]; then
+            FORCE_FLAG="--force"
+          fi
+          python3 scripts/check-vanilla.py $FORCE_FLAG | tee -a "$GITHUB_OUTPUT"
+
+  release:
+    name: Download, Package, and Draft Release
+    needs: check
+    if: needs.check.outputs.release_needed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Package and draft vanilla release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_ID: ${{ needs.check.outputs.build_id }}
+          GAME_MANIFEST: ${{ needs.check.outputs.game_manifest }}
+          LAUNCHER_MANIFEST: ${{ needs.check.outputs.launcher_manifest }}
+          IS_DRAFT: ${{ inputs.draft == '' && 'true' || inputs.draft }}
+          TARGET_BRANCH: ${{ github.ref_name }}
+        run: |
+          bash scripts/package-vanilla.sh

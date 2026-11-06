@@ -225,6 +225,27 @@ To push a locally built image with the same compression:
 L4D2_VERSION=1.0.3 just push
 ```
 
+### Vanilla server releases
+
+`.github/workflows/vanilla.yaml` checks for official Left 4 Dead 2 dedicated
+server updates daily at 03:00 UTC (and on `workflow_dispatch`). Its purpose is
+to capture clean upstream server files for lean image builds without baking ~10 GB
+into the container image itself.
+
+1. **Check**: `scripts/check-vanilla.py` queries `api.steamcmd.net` for the latest
+   public build ID and depot manifests (launcher 222863 and game 222861),
+   checking against existing `vanilla-*` releases. If the build already exists, the
+   run exits immediately without re-downloading.
+2. **Package**: When a new official build appears, `scripts/package-vanilla.sh`
+   downloads the depots via `DepotDownloader`, resolves `PatchVersion` from
+   `left4dead2/steam.inf`, and compresses the server files using `zstd` level 3.
+3. **Asset sizing**: GitHub Releases enforces a 2 GiB per-asset ceiling. Because
+   the compressed server archive is ~4.85 GB, it is split into 1900 MiB parts
+   (`l4d2-server-vanilla-<version>.tar.zst.part*`) alongside `sha256sums.txt`.
+4. **Draft release**: Pushes a new draft release named `vanilla-<version>` with
+   `--latest=false`, preventing tag or release collision with the container's
+   `v1.x.y` SemVer stream.
+
 ## Cache behaviour
 
 The multi-stage build is heavily optimized for Docker layer caching:
