@@ -40,7 +40,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           token: ${{ github.token }}
-          persist_credentials: true
+          persist-credentials: true
           fetch-depth: 0
 
       - name: Set up just
@@ -59,6 +59,9 @@ jobs:
           # Silent: weeks with nothing to release end green, not failed.
           noNewCommitBehavior: silent
           noVersionBumpBehavior: silent
+          tagFilter: '^v[0-9]'
+          skipInvalidTags: true
+          maxTagsToFetch: 50
 
       - name: CI Gate (verify code is green before bumping)
         if: steps.semver.outputs.next != ''
