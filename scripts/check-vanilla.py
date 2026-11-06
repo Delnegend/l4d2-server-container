@@ -32,11 +32,14 @@ APP_ID = 222860
 # Depot 222861 is the game files (~9.5 GB); depot 222863 is the launcher (~240 MB).
 GAME_DEPOT = 222861
 LAUNCHER_DEPOT = 222863
+ALLOWED_HOSTS = {"api.steamcmd.net", "api.github.com"}
 TIMEOUT = 30
 
 
 def fetch_json(url: str, token: str | None = None) -> dict:
     parsed = urllib.parse.urlsplit(url)
+    if parsed.scheme != "https" or parsed.hostname not in ALLOWED_HOSTS:
+        raise SystemExit(f"check-vanilla: refusing to fetch {url}")
     req = urllib.request.Request(
         url,
         headers={"User-Agent": "l4d2-server-container-vanilla-check"},
@@ -44,7 +47,9 @@ def fetch_json(url: str, token: str | None = None) -> dict:
     if token and parsed.hostname == "api.github.com":
         req.add_header("Authorization", f"Bearer {token}")
         req.add_header("Accept", "application/vnd.github+json")
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+    with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+        req, timeout=TIMEOUT
+    ) as resp:
         return json.loads(resp.read().decode("utf-8", "replace"))
 
 

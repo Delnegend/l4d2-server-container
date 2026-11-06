@@ -201,12 +201,17 @@ def run_a2s_self_check(port: int, attempts: int = 12, delay: float = 10.0) -> bo
 
 def fetch_latest_release() -> dict | None:
     url = f"https://api.github.com/repos/{RELEASE_REPO}/releases?per_page=10"
+    parsed = urllib.parse.urlsplit(url)
+    if parsed.scheme != "https" or parsed.hostname != "api.github.com":
+        fail(f"Refusing to fetch non-HTTPS or unexpected host: {url}")
     headers = {
         "User-Agent": "l4d2-server-container-bootstrap",
         "Accept": "application/vnd.github+json",
     }
     req = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(req, timeout=15) as resp:
+    with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+        req, timeout=15
+    ) as resp:
         releases = json.loads(resp.read().decode("utf-8", "replace"))
     for r in releases:
         if r.get("tag_name", "").startswith("vanilla-"):
@@ -216,20 +221,11 @@ def fetch_latest_release() -> dict | None:
 
 def download_file(url: str, dest: Path) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
-    if shutil.which("curl"):
-        res = subprocess.run(
-            ["curl", "-fsSL", "--retry", "3", "--retry-delay", "2", url, "-o", str(dest)]
-        )
-        if res.returncode != 0:
-            fail(f"Failed to download {dest.name} from {url}.")
-        return
-
-    req = urllib.request.Request(
-        url, headers={"User-Agent": "l4d2-server-container-bootstrap"}
+    res = subprocess.run(
+        ["curl", "-fsSL", "--retry", "3", "--retry-delay", "2", url, "-o", str(dest)]
     )
-    with urllib.request.urlopen(req, timeout=60) as response, open(dest, "wb") as out_file:
-        shutil.copyfileobj(response, out_file, length=1024 * 1024)
-
+    if res.returncode != 0:
+        fail(f"Failed to download {dest.name} from {url}.")
 
 def verify_checksums(download_dir: Path) -> None:
     sums_file = download_dir / "sha256sums.txt"
@@ -262,14 +258,22 @@ def extract_server_archive(download_dir: Path, data_dir: Path) -> None:
     single = sorted(download_dir.glob("*.tar.zst"))
 
     if parts:
-        part_paths = " ".join(shlex.quote(str(p)) for p in parts)
-        cmd = f"cat {part_paths} | tar --zstd -xf - -C {shlex.quote(str(data_dir))}"
-        res = subprocess.run(cmd, shell=True)
-        if res.returncode != 0:
-            fail(f"Extraction failed with exit code {res.returncode}.")
+        log("Extracting multi-part zstd archive into /data...")
+        p = subprocess.Popen(
+            ["tar", "--zstd", "-xf", "-", "-C", str(data_dir)],
+            stdin=subprocess.PIPE,
+        )
+        for part in parts:
+            with open(part, "rb") as f:
+                shutil.copyfileobj(f, p.stdin, length=1024 * 1024)
+        if p.stdin:
+            p.stdin.close()
+        res = p.wait()
+        if res != 0:
+            fail(f"Extraction failed with exit code {res}.")
     elif single:
-        cmd = ["tar", "--zstd", "-xf", str(single[0]), "-C", str(data_dir)]
-        res = subprocess.run(cmd)
+        log(f"Extracting {single[0].name} into /data...")
+        res = subprocess.run(["tar", "--zstd", "-xf", str(single[0]), "-C", str(data_dir)])
         if res.returncode != 0:
             fail(f"Extraction failed with exit code {res.returncode}.")
     else:
