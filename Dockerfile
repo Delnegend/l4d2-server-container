@@ -47,7 +47,7 @@ FROM ${DEBIAN_IMAGE} AS base
 
 ARG SERVER_VERSION
 
-LABEL maintainer="Homelab Admin"
+LABEL maintainer="Delnegend <kiennguyen19323@gmail.com>"
 LABEL description="Left 4 Dead 2 Dedicated Server, lean runtime"
 LABEL org.opencontainers.image.version="${SERVER_VERSION}"
 

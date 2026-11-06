@@ -11,11 +11,6 @@ on:
         required: false
         type: boolean
         default: false
-      draft:
-        description: 'Create as a draft release'
-        required: false
-        type: boolean
-        default: true
 
 permissions:
   contents: write
@@ -53,7 +48,7 @@ jobs:
           python3 scripts/check-vanilla.py $FORCE_FLAG | tee -a "$GITHUB_OUTPUT"
 
   release:
-    name: Download, Package, and Draft Release
+    name: Download, Package, and Publish Release
     needs: check
     if: needs.check.outputs.release_needed == 'true'
     runs-on: ubuntu-latest
@@ -63,7 +58,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Package and draft vanilla release
+      - name: Package and publish vanilla release
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -71,7 +66,6 @@ jobs:
           BUILD_ID: ${{ needs.check.outputs.build_id }}
           GAME_MANIFEST: ${{ needs.check.outputs.game_manifest }}
           LAUNCHER_MANIFEST: ${{ needs.check.outputs.launcher_manifest }}
-          IS_DRAFT: ${{ inputs.draft == '' && 'true' || inputs.draft }}
           TARGET_BRANCH: ${{ github.ref_name }}
         run: |
           bash scripts/package-vanilla.sh

@@ -242,7 +242,7 @@ into the container image itself.
 3. **Asset sizing**: GitHub Releases enforces a 2 GiB per-asset ceiling. Because
    the compressed server archive is ~4.85 GB, it is split into 1900 MiB parts
    (`l4d2-server-vanilla-<version>.tar.zst.part*`) alongside `sha256sums.txt`.
-4. **Draft release**: Pushes a new draft release named `vanilla-<version>` with
+4. **Published release**: Pushes a new release named `vanilla-<version>` with
    `--latest=false`, preventing tag or release collision with the container's
    `v1.x.y` SemVer stream.
 

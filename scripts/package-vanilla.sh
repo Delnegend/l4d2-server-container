@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Download official Left 4 Dead 2 dedicated server files, compress with zstd level 3,
-# split if exceeding GitHub release asset size limits (2 GiB), and create a draft release.
+# split if exceeding GitHub release asset size limits (2 GiB), and create a release.
 #
 # Required environment variables:
 #   BUILD_ID          - Steam public build ID
@@ -9,7 +9,6 @@
 #   LAUNCHER_MANIFEST - Steam manifest ID for depot 222863 (launcher)
 #
 # Optional environment variables:
-#   IS_DRAFT          - "true" (default) or "false"
 #   TARGET_BRANCH     - Target git branch or SHA (default: main)
 #   DEPOT_DOWNLOADER_VERSION - Version of DepotDownloader to use (default: 3.4.0)
 #   MAX_DOWNLOADS     - Max concurrent chunk downloads (default: 16)
@@ -21,7 +20,6 @@ set -euo pipefail
 : "${GAME_MANIFEST:?package-vanilla: GAME_MANIFEST is required}"
 : "${LAUNCHER_MANIFEST:?package-vanilla: LAUNCHER_MANIFEST is required}"
 
-IS_DRAFT="${IS_DRAFT:-true}"
 TARGET_BRANCH="${TARGET_BRANCH:-main}"
 DEPOT_DOWNLOADER_VERSION="${DEPOT_DOWNLOADER_VERSION:-3.4.0}"
 MAX_DOWNLOADS="${MAX_DOWNLOADS:-16}"
@@ -166,23 +164,17 @@ tar --zstd -xf ${ARCHIVE_NAME}
 EOF
 fi
 
-echo "==> Draft release notes:"
+echo "==> Release notes:"
 cat "$NOTES_FILE"
 
 echo "==> Publishing release to GitHub..."
-DRAFT_FLAG=""
-if [ "$IS_DRAFT" = "true" ]; then
-    DRAFT_FLAG="--draft"
-fi
 
 if gh release view "$TAG" >/dev/null 2>&1; then
     echo "Release $TAG already exists on GitHub. Uploading assets..."
     gh release upload "$TAG" "$DIST_DIR"/* --clobber
 else
-    echo "Creating new release $TAG (draft=$IS_DRAFT)..."
-    # shellcheck disable=SC2086
+    echo "Creating new release $TAG..."
     gh release create "$TAG" "$DIST_DIR"/* \
-        $DRAFT_FLAG \
         --latest=false \
         --title "$TAG" \
         --notes-file "$NOTES_FILE" \

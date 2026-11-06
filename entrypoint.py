@@ -323,7 +323,7 @@ def ensure_server_files(data_dir: Path) -> None:
         fail(
             f"No server install found in {data_dir}, and no 'vanilla-*' releases exist on {RELEASE_REPO}.",
             "",
-            "Run the Upstream Vanilla Release workflow on GitHub to package and draft the server files.",
+            "Run the Upstream Vanilla Release workflow on GitHub to package and publish the server files.",
         )
 
     target_tag = release["tag_name"]
