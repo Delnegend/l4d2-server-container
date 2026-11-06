@@ -222,7 +222,7 @@ def fetch_latest_release() -> dict | None:
 def download_file(url: str, dest: Path) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     res = subprocess.run(
-        ["curl", "-fsSL", "--retry", "3", "--retry-delay", "2", url, "-o", str(dest)]
+        ["curl", "-#", "-fSL", "--retry", "3", "--retry-delay", "2", url, "-o", str(dest)]
     )
     if res.returncode != 0:
         fail(f"Failed to download {dest.name} from {url}.")
@@ -345,6 +345,9 @@ def ensure_server_files(data_dir: Path) -> None:
     if not any(".tar.zst" in a["name"] for a in assets):
         fail(f"Release {target_tag} contains no .tar.zst archive assets.")
 
+    archive_assets = [a for a in assets if a["name"] != "sha256sums.txt"]
+    total_parts = len(archive_assets)
+    part_idx = 1
     download_dir = data_dir / ".download"
     download_dir.mkdir(parents=True, exist_ok=True)
     try:
@@ -352,9 +355,19 @@ def ensure_server_files(data_dir: Path) -> None:
             dest = download_dir / a["name"]
             expected_size = a.get("size")
             if dest.is_file() and expected_size and dest.stat().st_size == expected_size:
+                if a["name"] != "sha256sums.txt":
+                    part_idx += 1
                 continue
+            if a["name"] != "sha256sums.txt":
+                size_mb = (expected_size or 0) / (1024 * 1024)
+                log(
+                    f"Downloading part {part_idx}/{total_parts}: "
+                    f"{a['name']} ({size_mb:.1f} MB)..."
+                )
+                part_idx += 1
+            else:
+                log("Downloading checksums (sha256sums.txt)...")
             download_file(a["browser_download_url"], dest)
-
         verify_checksums(download_dir)
         extract_server_archive(download_dir, data_dir)
         marker_file.write_text(f"{target_tag}\n", encoding="utf-8")
