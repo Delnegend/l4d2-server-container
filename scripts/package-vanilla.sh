@@ -129,7 +129,6 @@ Left 4 Dead 2 Dedicated Server (Vanilla)
 - **Game Manifest**: \`${GAME_MANIFEST}\`
 - **Launcher Manifest**: \`${LAUNCHER_MANIFEST}\`
 - **Depots**: 222861 (Game), 222863 (Launcher)
-- **Compression**: zstd level 3
 
 <!-- metadata:
 build_id: ${BUILD_ID}
