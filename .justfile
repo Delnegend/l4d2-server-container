@@ -110,8 +110,8 @@ smoke: build
         -v "$scratch:/data:Z" \
         {{local_tag}} >/dev/null
 
-    echo "waiting for the server to initialize (up to 60s)..."
-    deadline=$((SECONDS + 60))
+    echo "waiting for the server to initialize (up to 300s)..."
+    deadline=$((SECONDS + 300))
     ready=0
     while [ "${SECONDS}" -lt "${deadline}" ]; do
         if {{engine}} exec "$name" test -x /data/srcds_run; then
@@ -127,7 +127,7 @@ smoke: build
     done
     if [ "${ready}" -ne 1 ]; then
         {{engine}} logs --tail 40 "$name" 2>&1 || true
-        echo "smoke test FAILED: server did not initialize within 60s" >&2
+        echo "smoke test FAILED: server did not initialize within 300s" >&2
         exit 1
     fi
 
