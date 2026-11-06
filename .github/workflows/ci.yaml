@@ -9,14 +9,11 @@ on:
 
 permissions:
   contents: read
-  packages: read
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  IMAGE: ghcr.io/delnegend/l4d2-server-container
 
 jobs:
   verify:
@@ -34,18 +31,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Docs check, install, A2S self-check, plugin stack
         run: just verify
         env:
           CONTAINER_ENGINE: docker
-          EXTRA_BUILD_ARGS: --cache-from type=registry,ref=${{ env.IMAGE }}:buildcache --load
+          EXTRA_BUILD_ARGS: --load
           L4D2_SMOKE_DIR: ${{ github.workspace }}/.smoke
 
   scan:

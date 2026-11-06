@@ -6,35 +6,31 @@ costs. For configuration see [configuration.md](configuration.md); for the
 
 ## The build graph
 
-Multi-stage build with the game baked into the base image layer, heavily optimized for Docker layer caching.
+Lean multi-stage build decoupling server runtime from game files, heavily optimized for Docker layer caching.
 
 ```mermaid
 graph TD
-    fetch["fetch<br/>DepotDownloader, ~10 GB download<br/>never published"] --> base["base<br/>Debian + 32-bit runtime libs<br/>+ baked install at /opt/l4d2"]
-    base --> vanilla["vanilla<br/>base + entrypoint + config<br/>clean 4-player server"]
+    base["base<br/>Debian + 32-bit runtime libs<br/>+ curl, tar, zstd"] --> vanilla["vanilla<br/>base + entrypoint + config<br/>clean 4-player server"]
     mods["mods<br/>mod overlay staging<br/>MetaMod, SourceMod, l4dtoolz"] --> server["server<br/>THE PUBLISHED IMAGE<br/>vanilla + mod overlay<br/>default 8-player server"]
     vanilla --> server
 ```
 
 | Stage | Published? | What it adds |
 |---|---|---|
-| `fetch` | no | One-shot DepotDownloader stage that downloads the pinned Steam depots into `/opt/l4d2`. |
-| `base` | no | 32-bit runtime libraries, `steam` user, and the clean vanilla game install baked in at `/opt/l4d2`. |
+| `base` | no | 32-bit runtime libraries, `steam` user, and tooling for downloading and extracting releases. |
 | `mods` | no | Stages the 8-player mod overlay (MetaMod, SourceMod 1.12, l4dtoolz, Left 4 DHooks, 5+ plugins, No-Steam-logon bypass) at `/opt/l4d2-overlay`. |
 | `vanilla` | no | Inherits from `base`, adds entrypoint and configuration template (clean 4-player server). Deployable via `--target vanilla`. |
 | `server` | **yes** | Inherits from `vanilla`, adds the staged mod overlay from `mods` and `server_custom.cfg` (published default 8-player server). |
 
 Building `--target vanilla` produces a pure unmodded 4-player server. Building without `--target` builds `server`, which is the published default 8-player image.
 
-### Why the game is in the image
+### Decoupled server files
 
-Baking the ~10 GB game install into the `base` stage eliminates the 10-minute download on the first run of a volume, prevents data duplication on the host drive, and allows running pure vanilla and 8-player instances from the exact same base files without cross-contamination.
+Decoupling the ~10 GB game install from the container image reduces image size from 10.3 GB to ~463 MB (~150 MB compressed) and cuts image build time from 15 minutes to ~30 seconds. Official server files are packaged into `vanilla-<version>` release archives and downloaded to `/data` on startup.
 
 Docker layer caching is optimized by separating concerns into independent stages:
-- **`fetch`**: Downloads the game into `/opt/l4d2` and uses a cache mount for depot chunks.
-- **`base`**: Copies `/opt/l4d2` once. Because it does not contain entrypoint scripts or configs, this ~10 GB layer remains permanently cached.
+- **`base`**: Installs 32-bit runtime libraries, python3, curl, tar, and zstd.
 - **`mods`**: Stages all plugins independently. Rebuilding after an entrypoint or config change takes under a second because neither `base` nor `mods` needs to re-run.
-
 ### The mod overlay
 
 Our `addons/` and `cfg/` are staged in the image at `/opt/l4d2-overlay`, mirroring the `left4dead2/` layout. When the server boots (and `SERVER_MODE` is not `vanilla`), the entrypoint links the mod stack into the server directory:
