@@ -1,0 +1,46 @@
+$schema: "https://raw.githubusercontent.com/Delnegend/actions/main/scripts/README.schema.json"
+
+name: L4D2 Server Container
+repo: Delnegend/l4d2-server-container
+tagline: "Left 4 Dead 2 Linux dedicated server container with 8-player co-op support and instant boot times."
+
+badges:
+  ci:
+    workflow: "ci.yaml"
+    branch: "main"
+  release: true
+  license: true
+
+quick_start: |
+  Get your server running in less than 60 seconds:
+
+  ```bash
+  # 1. Download configuration
+  curl -fsSL https://raw.githubusercontent.com/Delnegend/l4d2-server-container/main/compose.yaml -o compose.yaml
+
+  # 2. Start the server
+  podman compose up -d
+
+  # 3. View startup logs
+  podman compose logs -f
+  ```
+
+  Look for `Self-check OK: server answers A2S queries` in the log to confirm the server is public and discoverable.
+
+highlights:
+  - "**Instant startup**: The ~10 GB game install is baked into the base image layer, booting within seconds without runtime downloads."
+  - "**8-Player co-op out of the box**: Pre-configured with SourceMod, MetaMod, l4dtoolz, and the 5+ survivor plugin stack."
+  - "**Clean host storage**: Game files stay read-only in the image; your host volume only stores ~50 MB of configs, maps, and logs."
+  - "**Flexible server modes**: Set `SERVER_MODE` to `8players` (default), `sourcemod` (4-player with admin tools), or `vanilla` (pure 4-player stock server)."
+  - "**Unprivileged security**: Runs safely as standard non-root user `steam` (UID 1000) with automatic visibility self-checks."
+
+documentation:
+  architecture: "Multi-stage build graph, cache optimization, and volume symlinking."
+  development: "Prerequisites, building local images, running smoke tests, and contribution workflow."
+  deployment: "Deployment via Podman Compose or Docker Compose, container CLI, logs, and upgrades."
+
+license:
+  type:
+    - MIT
+  holder: "Delnegend"
+  filename: "LICENSE"
