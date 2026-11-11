@@ -69,7 +69,7 @@ jobs:
 
       - name: Bump, tag, and push
         id: resolve
-        uses: Delnegend/actions/resolve-release@cc01ad7470776ce23b38f14823a86d560e2d592e # v1
+        uses: Delnegend/actions/resolve-release@main
         with:
           ref: ${{ inputs.ref }}
           dry-run: ${{ inputs.dry-run }}
@@ -98,7 +98,7 @@ jobs:
 
       - name: Build and push server
         id: build
-        uses: Delnegend/actions/docker-build-push@cc01ad7470776ce23b38f14823a86d560e2d592e # v1
+        uses: Delnegend/actions/docker-build-push@main
         with:
           version: ${{ needs.prepare.outputs.version_strict }}
           publish: ${{ needs.prepare.outputs.publish }}
@@ -108,7 +108,7 @@ jobs:
             SERVER_VERSION=${{ needs.prepare.outputs.version_strict }}
 
       - name: Publish the release
-        uses: Delnegend/actions/publish-release@cc01ad7470776ce23b38f14823a86d560e2d592e # v1
+        uses: Delnegend/actions/publish-release@main
         with:
           ref: ${{ needs.prepare.outputs.ref }}
           publish: ${{ needs.prepare.outputs.publish }}
