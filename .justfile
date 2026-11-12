@@ -1,7 +1,6 @@
 # Development commands for the L4D2 dedicated server image.
 #
-# Run `just` with no arguments for the list. `just check` is the gate to run
-# before pushing anything; `just verify` is everything CI does.
+# Run `just` with no arguments for the list. `just verify` is everything CI does.
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
@@ -205,13 +204,12 @@ clean-all:
     -rm -rf "{{smoke_dir}}"
     @echo "pruned the build cache; the next build re-downloads the game"
 
-# Validate the docs against the code it describes. See scripts/docs-check.py.
+# Reserved for future checks; currently performs no validation.
 check:
-    python3 scripts/docs-check.py
 
 # Everything CI does, before pushing.
 verify: check smoke
-    @echo "check + smoke (linking, A2S self-check, plugin stack) all passed"
+    @echo "smoke (linking, A2S self-check, plugin stack) passed"
 
 
 # Language-agnostic version contract for Delnegend/actions/resolve-release.

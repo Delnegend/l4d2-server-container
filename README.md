@@ -42,6 +42,11 @@ Look for `Self-check OK: server answers A2S queries` in the log to confirm the s
 - **[Architecture](docs/architecture.md)**: Multi-stage build graph, cache optimization, and volume symlinking.
 - **[Development](docs/development.md)**: Prerequisites, building local images, running smoke tests, and contribution workflow.
 - **[Deployment](docs/deployment.md)**: Deployment via Podman Compose or Docker Compose, container CLI, logs, and upgrades.
+- **[Configuration](docs/configuration.md)**: Server settings and environment variables.
+- **[8-player setup](docs/eight-players.md)**: Configure and use 8-player co-op.
+- **[Mods](docs/mods.md)**: Manage plugins and modifications.
+- **[Maintenance](docs/maintenance.md)**: Update and maintain the server.
+- **[Troubleshooting](docs/troubleshooting.md)**: Diagnose common problems.
 
 ## License
 

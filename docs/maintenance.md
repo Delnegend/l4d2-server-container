@@ -108,8 +108,7 @@ podman build --build-arg L4D_PLUGINS_REF=<sha> -t localhost/l4d2:dev .
 ```
 
 Edit the `ARG L4D_PLUGINS_REF` line **and** its row in
-[architecture.md](architecture.md#build-arguments): `just check` fails if they
-disagree.
+[architecture.md](architecture.md#build-arguments) to keep them in sync.
 
 `left4dhooks` is different: it is a forum attachment, not a package, so it is
 vendored at `assets/left4dhooks.zip` and verified against
@@ -207,9 +206,7 @@ without touching the version.
 | `latest` | the newest release |
 
 One published image, exactly two tags: the exact version and `latest`. No
-rolling `1.0` or `1` tags, and no per-target tags; so there is nothing
-ambiguous for a deployment to latch onto by accident. `just check` fails the
-build if that ever changes, so the policy cannot drift quietly.
+rolling `1.0` or `1` tags, and no per-target tags.
 
 The **game build is not part of the tag**, and deliberately so. It is a
 per-deployment property, set with `GAME_MANIFEST` in `.env`, and putting it in

@@ -6,10 +6,7 @@ Run by the update workflow after scripts/resolve-upstream.py reports a stale pin
     scripts/apply-bump.py --game-manifest 4827977561765481436
 
 Only the ARGs named on the command line are touched. The documentation table in
-docs/architecture.md is updated alongside, because scripts/docs-check.py fails
-the build if a documented default and the Dockerfile disagree - and that check
-is what stops the pins the update workflow bumps from drifting away from the
-table that claims to describe them.
+docs/architecture.md is updated alongside to keep the documented defaults in sync.
 """
 
 import argparse

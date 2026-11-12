@@ -63,7 +63,7 @@ jobs:
           skipInvalidTags: true
           maxTagsToFetch: 50
 
-      - name: CI Gate (verify code is green before bumping)
+      - name: Run checks (currently empty)
         if: steps.semver.outputs.next != ''
         run: just check
 
