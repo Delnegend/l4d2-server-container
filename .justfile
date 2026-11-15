@@ -138,7 +138,13 @@ smoke: build
         echo "smoke test FAILED: the plugin stack did not load" >&2
         exit 1
     fi
-    echo "plugins installed: $({{engine}} exec "$name" ls /data/left4dead2/addons/sourcemod/plugins/ | grep -cE 'left4dhooks|multislots|unreservelobby|CreateSurvivorBot|block_no_steam_logon') of 5"
+    for plugin in left4dhooks l4dmultislots l4d_unreservelobby l4d_CreateSurvivorBot l4d2_block_no_steam_logon; do
+        if ! {{engine}} exec "$name" test -f "/data/left4dead2/addons/sourcemod/plugins/${plugin}.smx"; then
+            echo "smoke test FAILED: missing plugin ${plugin}.smx" >&2
+            exit 1
+        fi
+    done
+    echo "plugins installed: 5 of 5"
     echo "l4dmultislots.cfg:  $({{engine}} exec "$name" grep -c '^l4d_' /data/left4dead2/cfg/sourcemod/l4dmultislots.cfg) cvars"
 
     echo "waiting for the A2S self-check (up to 120s)..."

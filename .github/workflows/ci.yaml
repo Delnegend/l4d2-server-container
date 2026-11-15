@@ -19,7 +19,8 @@ jobs:
   verify:
     # Boots a real server: A2S self-check, plugin stack, no `Unknown command`.
     name: Check (just verify)
-    runs-on: ubuntu-latest
+    # Docker 29.4.2 on Ubuntu 26.04 blocks i386 socketcall (runner-images#14790).
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout repository

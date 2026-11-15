@@ -57,6 +57,10 @@ GitHub holds runs raised by the bot's own pull requests. The check is not a
 lint: it downloads both pinned manifests, boots the server, checks the A2S
 self-check and the plugin stack, and fails on any `Unknown command` the game
 build introduced. So a merged bump is a booted one.
+The three survivor-stack plugins are compiled from the pinned upstream SourcePawn
+sources during the image build; a missing source or compiler failure stops the
+build. The smoke check also requires all five plugin files to be present.
+
 
 While that pull request is open the daily run leaves it alone, but only for as
 long as it can still merge. Anything that lands on `main` edits the same `ARG`

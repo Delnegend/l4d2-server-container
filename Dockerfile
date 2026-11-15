@@ -94,7 +94,7 @@ ARG BLOCK_LOGON_ASSET
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates curl tar unzip && \
+    apt-get install -y --no-install-recommends ca-certificates curl libstdc++6 tar unzip && \
     rm -rf /var/lib/apt/lists/*
 
 # MetaMod:Source + SourceMod (branch 1.12 stable)
@@ -136,17 +136,19 @@ RUN set -eux; \
     echo "${LEFT4DHOOKS_SHA256}  /tmp/left4dhooks.zip" | sha256sum -c -; \
     unzip -q /tmp/left4dhooks.zip -d /tmp; \
     cp -r /tmp/sourcemod/. "${sm}/"; \
-    fetch() { \
-        for dir in l4dmultislots l4d_CreateSurvivorBot l4d_unreservelobby; do \
-            curl -fsSL "${L4D_PLUGINS_REPO}/${L4D_PLUGINS_REF}/${dir}/$1" -o /tmp/dl && return 0; \
-        done; \
-        echo "could not fetch $1" >&2; return 1; \
-    }; \
-    fetch plugins/l4d_unreservelobby.smx        && mv /tmp/dl "${sm}/plugins/l4d_unreservelobby.smx"; \
-    fetch plugins/l4dmultislots.smx             && mv /tmp/dl "${sm}/plugins/l4dmultislots.smx"; \
-    fetch plugins/l4d_CreateSurvivorBot.smx     && mv /tmp/dl "${sm}/plugins/l4d_CreateSurvivorBot.smx"; \
-    fetch gamedata/l4d_CreateSurvivorBot.txt    && mv /tmp/dl "${sm}/gamedata/l4d_CreateSurvivorBot.txt"; \
-    fetch translations/l4dmultislots.phrases.txt && mv /tmp/dl "${sm}/translations/l4dmultislots.phrases.txt"; \
+    curl -fsSL "${L4D_PLUGINS_REPO}/${L4D_PLUGINS_REF}/l4d_CreateSurvivorBot/gamedata/l4d_CreateSurvivorBot.txt" -o "${sm}/gamedata/l4d_CreateSurvivorBot.txt"; \
+    curl -fsSL "${L4D_PLUGINS_REPO}/${L4D_PLUGINS_REF}/l4dmultislots/translations/l4dmultislots.phrases.txt" -o "${sm}/translations/l4dmultislots.phrases.txt"; \
+    curl -fsSL "${L4D_PLUGINS_REPO}/${L4D_PLUGINS_REF}/l4d_CreateSurvivorBot/scripting/include/l4d_CreateSurvivorBot.inc" -o "${sm}/scripting/include/l4d_CreateSurvivorBot.inc"; \
+    for plugin in l4d_unreservelobby l4dmultislots l4d_CreateSurvivorBot; do \
+        curl -fsSL "${L4D_PLUGINS_REPO}/${L4D_PLUGINS_REF}/${plugin}/scripting/${plugin}.sp" -o "${sm}/scripting/${plugin}.sp"; \
+    done; \
+    curl -fsSL -o /tmp/mc.zip "https://github.com/fbef0102/L4D1_2-Plugins/releases/download/Multi-Colors/multicolors.zip"; \
+    unzip -q /tmp/mc.zip -d /tmp/mc; \
+    cp -r /tmp/mc/scripting/include/. "${sm}/scripting/include/"; \
+    for plugin in l4d_unreservelobby l4dmultislots l4d_CreateSurvivorBot; do \
+        "${sm}/scripting/spcomp64" -i"${sm}/scripting/include" -o"${sm}/plugins/${plugin}.smx" "${sm}/scripting/${plugin}.sp"; \
+    done; \
+    rm -rf /tmp/mc /tmp/mc.zip; \
     rm -rf /tmp/sourcemod /tmp/left4dhooks.zip /tmp/dl
 
 # l4d2_block_no_steam_logon - bypasses "No Steam logon" drops (toggle: BLOCK_NO_STEAM_LOGON)
@@ -164,14 +166,6 @@ RUN set -eux; \
         "${sm}/gamedata/l4d2_block_no_steam_logon.txt"; \
     rm -rf /tmp/bnsl /tmp/bnsl.zip
 
-# Multi-Colors include
-RUN set -eux; \
-    sm=/opt/l4d2-overlay/left4dead2/addons/sourcemod; \
-    curl -fsSL -o /tmp/mc.zip \
-        "https://github.com/fbef0102/L4D1_2-Plugins/releases/download/Multi-Colors/multicolors.zip"; \
-    unzip -q /tmp/mc.zip -d /tmp/mc; \
-    cp -r /tmp/mc/scripting/include/. "${sm}/scripting/include/"; \
-    rm -rf /tmp/mc /tmp/mc.zip
 
 COPY l4dmultislots.cfg /opt/l4d2-overlay/left4dead2/cfg/sourcemod/l4dmultislots.cfg
 
