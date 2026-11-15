@@ -17,6 +17,10 @@ podman compose logs -f
 
 Look for `Self-check OK: server answers A2S queries` in the container log to confirm public discoverability.
 
+The server checks GitHub releases at startup. If GitHub reports a rate limit,
+pass a read-only `GITHUB_TOKEN` environment variable to the container to
+authenticate the release lookup. Keep the token out of version-controlled files.
+
 ## Run with Container CLI
 
 ```bash

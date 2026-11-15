@@ -208,6 +208,9 @@ def fetch_latest_release() -> dict | None:
         "User-Agent": "l4d2-server-container-bootstrap",
         "Accept": "application/vnd.github+json",
     }
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
         req, timeout=15

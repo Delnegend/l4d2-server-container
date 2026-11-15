@@ -105,6 +105,7 @@ smoke: build
     {{engine}} run -d --name "$name" \
         {{userns}} --user 1000:1000 \
         -e PORT=27099 -e STEAM_GROUP_ID=46303910 \
+        -e GITHUB_TOKEN \
         -p 27099:27099/udp -p 27099:27099/tcp \
         -v "$scratch:/data:Z" \
         {{local_tag}} >/dev/null
