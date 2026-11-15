@@ -1,4 +1,4 @@
-$schema: "https://raw.githubusercontent.com/Delnegend/actions/main/scripts/README.schema.json"
+$schema: "https://raw.githubusercontent.com/Delnegend/common-facade/main/README.schema.json"
 
 name: L4D2 Server Container
 repo: Delnegend/l4d2-server-container
