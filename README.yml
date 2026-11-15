@@ -37,7 +37,7 @@ highlights:
 documentation:
   architecture: "Multi-stage build graph, cache optimization, and volume symlinking."
   development: "Prerequisites, building local images, running smoke tests, and contribution workflow."
-  deployment: "Deployment via Podman Compose or Docker Compose, container CLI, logs, and upgrades."
+  deployment: "Deployment via Podman Compose or Docker Compose, container CLI, logs, and upgrades. See [configuration](docs/configuration.md), [8-player setup](docs/eight-players.md), [mods](docs/mods.md), [maintenance](docs/maintenance.md), and [troubleshooting](docs/troubleshooting.md)."
 
 license:
   type:
