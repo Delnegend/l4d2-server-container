@@ -76,7 +76,7 @@ jobs:
             --block-logon-release '${{ needs.resolve.outputs.block_logon_release }}' \
             --block-logon-asset '${{ needs.resolve.outputs.block_logon_asset }}'
 
-      - name: Open the pull request and queue it for merge
+      - name: Open the pull request
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -162,10 +162,6 @@ jobs:
           `${{ needs.resolve.outputs.sourcemod_drop }}`.
           BODY
           )"
-
-          # Auto-merge if branch protection requires status checks; otherwise
-          # merge directly if the pull request is already in clean status.
-          gh pr merge --auto --rebase 2>/dev/null || gh pr merge --rebase || true
 
   report:
     # Runs whether or not anything was stale: this is the record of where the

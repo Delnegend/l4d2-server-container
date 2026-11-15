@@ -51,12 +51,12 @@ against upstream with `scripts/resolve-upstream.py`:
 If any of them is stale, the workflow opens **one** pull request that rewrites
 the `ARG` defaults and the matching rows in
 [architecture.md](architecture.md#build-arguments) with
-`scripts/apply-bump.py`, then enables auto-merge on it. The pull request lands
-when `Check (just verify)` goes green, after a maintainer approves that run;
-GitHub holds runs raised by the bot's own pull requests. The check is not a
-lint: it downloads both pinned manifests, boots the server, checks the A2S
-self-check and the plugin stack, and fails on any `Unknown command` the game
-build introduced. So a merged bump is a booted one.
+`scripts/apply-bump.py`. The pull request lands only after the entire CI run
+succeeds, including `Check (just verify)`, and only if its head still matches
+the tested commit. GitHub may hold bot pull request runs for maintainer approval.
+The check is not a lint: it downloads both pinned manifests, boots the server,
+checks the A2S self-check and the plugin stack, and fails on any `Unknown command`
+the game build introduced. So a merged bump is a booted one.
 The three survivor-stack plugins are compiled from the pinned upstream SourcePawn
 sources during the image build; a missing source or compiler failure stops the
 build. The smoke check also requires all five plugin files to be present.
@@ -69,11 +69,6 @@ being mergeable; the run then closes it as superseded and opens a fresh one
 against the current base rather than standing down and leaving the pins
 frozen. Branches that no open pull request is using are cleared out in the
 same pass, because a merged bump does not take its branch with it.
-
-> Auto-merge and branch protection are already enabled on the repository, so
-> there is nothing to configure by hand. They live in the repository's
-> settings rather than in this file; if they are ever reset, the `gh` commands
-> that set them up are in this file's history.
 
 Every run, stale or not, updates a single `Upstream pin state` issue with where
 the pins actually are. It is edited in place rather than re-posted, so it reads

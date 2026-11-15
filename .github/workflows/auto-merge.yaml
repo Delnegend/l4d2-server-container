@@ -3,6 +3,9 @@ name: Auto-merge dependencies
 on:
   pull_request:
     branches: [main]
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
 
 permissions:
   contents: write
@@ -10,4 +13,30 @@ permissions:
 
 jobs:
   automerge:
+    if: github.event_name == 'pull_request'
     uses: Delnegend/actions/.github/workflows/reusable-auto-merge.yml@main  # nosemgrep
+
+  merge-tested-bump:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-slim
+    steps:
+      - name: Merge the tested bump
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          pr=$(gh api "repos/$GH_REPO/commits/$TESTED_SHA/pulls" --jq '
+            [.[] | select(.state == "open" and .base.ref == "main" and
+              .user.login == "github-actions[bot]" and
+              .head.repo.full_name == env.GH_REPO and
+              (.head.ref | startswith("automation/bump-")) and
+              .head.sha == env.TESTED_SHA) | .number] | first // empty')
+          if [ -n "$pr" ]; then
+            gh pr merge "$pr" --rebase --match-head-commit "$TESTED_SHA"
+          fi
