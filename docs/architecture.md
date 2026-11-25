@@ -88,7 +88,7 @@ manifest chunks are fetched concurrently. The tool's own default is 8.
 | Argument | Default | Effect |
 |---|---|---|
 | `GAME_MANIFEST` | `48279775…` | Depot 222861 manifest: the game, 116 977 files, ~9.5 GB. What the entrypoint downloads on the first start of a volume, and the single value that decides whether it downloads at all. Override per deployment with `GAME_MANIFEST` in `.env`. |
-| `LAUNCHER_MANIFEST` | `86824416…` | Depot 222863 manifest: 674 files, `srcds_run` and `srcds_linux`. Steam versions this depot independently of the game one, so it needs its own pin; pinning only `GAME_MANIFEST` would leave the server binary unpinned. |
+| `LAUNCHER_MANIFEST` | `60794337…` | Depot 222863 manifest: 674 files, `srcds_run` and `srcds_linux`. Steam versions this depot independently of the game one, so it needs its own pin; pinning only `GAME_MANIFEST` would leave the server binary unpinned. |
 | `APP_ID` | `222860` | Steam app the dedicated server is published under. |
 | `GAME_DEPOT` | `222861` | The linux dedicated server depot. |
 | `LAUNCHER_DEPOT` | `222863` | The launcher depot. The SDK depot is never selected: `-os linux` does not pick it. |
@@ -96,7 +96,7 @@ manifest chunks are fetched concurrently. The tool's own default is 8.
 | `SOURCEMOD_BRANCH` | `1.12` | AlliedModders release branch for **both** MetaMod:Source and SourceMod. |
 | `L4DTOOLZ_VERSION` / `L4DTOOLZ_BUILD` | `2.5.1` / `2155` | Which l4dtoolz release goes into the overlay. |
 | `LEFT4DHOOKS_SHA256` | `1536aac3…` | Checksum the vendored `assets/left4dhooks.zip` against. The build fails if it does not match. |
-| `L4D_PLUGINS_REF` | `8c626500…` | Commit of [fbef0102/L4D1_2-Plugins](https://github.com/fbef0102/L4D1_2-Plugins) the 5+ plugins are fetched from, so a rebuild gets the same bytes. |
+| `L4D_PLUGINS_REF` | `d6637318…` | Commit of [fbef0102/L4D1_2-Plugins](https://github.com/fbef0102/L4D1_2-Plugins) the 5+ plugins are fetched from, so a rebuild gets the same bytes. |
 | `BLOCK_LOGON_RELEASE` / `BLOCK_LOGON_ASSET` | `release-…` / `modified…` | Which [blueblur0730/modified-plugins](https://github.com/blueblur0730/modified-plugins) release the No-Steam-logon bypass comes from, and which SourceMod-1.12 asset the build unpacks. |
 | `DEPOT_DOWNLOADER_VERSION` | `3.4.0` | DepotDownloader release to ship in the image. |
 | `SERVER_VERSION` | `dev` | Stamped as `org.opencontainers.image.version`. |
