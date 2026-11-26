@@ -4,9 +4,9 @@
 
 **Left 4 Dead 2 Linux dedicated server container with 8-player co-op support and instant boot times.**
 
-[![CI](https://img.shields.io/github/actions/workflow/status/Delnegend/l4d2-server-container/ci.yaml?branch=main&style=flat-square)](https://github.com/Delnegend/l4d2-server-container/actions)
-[![Release](https://img.shields.io/github/v/release/Delnegend/l4d2-server-container?style=flat-square)](https://github.com/Delnegend/l4d2-server-container/releases)
-[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+[![CI](https://badgers.space/github/checks/Delnegend/l4d2-server-container/main?corner_radius=0&label=build)](https://github.com/Delnegend/l4d2-server-container/actions)
+[![Release](https://badgers.space/github/release/Delnegend/l4d2-server-container?corner_radius=0&color=ea7233)](https://github.com/Delnegend/l4d2-server-container/releases)
+[![License](https://badgers.space/badge/license/MIT/007ec6?corner_radius=0)](LICENSE)
 
 </div>
 
