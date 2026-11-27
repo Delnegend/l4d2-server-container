@@ -21,6 +21,7 @@ on:
       - Dockerfile
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
   issues: write
@@ -76,92 +77,43 @@ jobs:
             --block-logon-release '${{ needs.resolve.outputs.block_logon_release }}' \
             --block-logon-asset '${{ needs.resolve.outputs.block_logon_asset }}'
 
-      - name: Open the pull request
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
+      - name: Gate on CI and land on main
+        uses: Delnegend/actions/gate-and-land@main  # nosemgrep
+        with:
+          branch: automation/bump
+          commit-message: "build: bump the pinned upstream versions"
+          pr-label: ""
+          pr-body: |
+            Upstream moved; the pins in `Dockerfile` no longer match it.
 
-          # Prune stale automation bump branches with no open pull request.
-          live=$(gh pr list --state open --limit 100 --json headRefName --jq '.[].headRefName')
-          for ref in $(git ls-remote --heads origin 'refs/heads/automation/bump-*' | sed 's#.*refs/heads/##'); do
-            if printf '%s\n' "$live" | grep -qx "$ref"; then
-              continue
-            fi
-            echo "Deleting ${ref}: no open pull request uses it."
-            git push origin --delete "$ref" \
-              || echo "Could not delete ${ref}; the next run will try again."
-          done
+            ```
+            ${{ needs.resolve.outputs.pins_summary }}
+            ```
 
-          # An open bump pull request only counts as handled while it can still
-          # merge. Anything that lands on main edits the same ARG lines and
-          # architecture rows this job rewrites, so the open pull request ends
-          # up in conflict sooner or later - unable to merge itself, and able
-          # to freeze the pins for as long as it stays open, because standing
-          # down is what this job used to do about it. Replace it instead, on
-          # today's base, and delete the branch it was left on.
-          open=$(gh pr list --state open \
-                   --search 'bump the pinned upstream versions in:title' \
-                   --json number,mergeable \
-                   --jq '.[0] | select(.) | "\(.number) \(.mergeable)"')
+            `scripts/resolve-upstream.py` found the difference and
+            `scripts/apply-bump.py` rewrote the `ARG` defaults and the matching
+            rows in `docs/architecture.md`.
 
-          if [ -n "$open" ]; then
-            number="${open%% *}"
-            mergeable="${open##* }"
-            # MERGEABLE and UNKNOWN are both "leave it alone": GitHub computes
-            # mergeability lazily, and one more day of waiting is cheaper than
-            # a second pull request for the same bump.
-            if [ "$mergeable" != 'CONFLICTING' ]; then
-              echo "Pull request #${number} is ${mergeable}; leaving it alone."
-              exit 0
-            fi
-            echo "Pull request #${number} is CONFLICTING; replacing it."
-            gh pr close "$number" --delete-branch --comment \
-              'Superseded: main moved under this branch and it can no longer merge, so the daily check opened a fresh pull request against the current base instead of standing down.'
-          fi
+            - **Valve**: `GAME_MANIFEST` (depot 222861, the game) and
+              `LAUNCHER_MANIFEST` (depot 222863, which is where `srcds_run`
+              lives). The entrypoint downloads both on the first start of a
+              volume, and re-downloads when either one changes.
+            - **l4dtoolz**: the newest stable release carrying a
+              `l4dtoolz-<version>-<build>.zip`.
+            - **5+ plugins**: the head commit of
+              [fbef0102/L4D1_2-Plugins](https://github.com/fbef0102/L4D1_2-Plugins).
+            - **No-Steam-logon bypass**: the newest release shipping a
+              `modified-plugins-sm-1.12-<date>.zip`.
 
-          branch="automation/bump-$(date -u +%Y%m%d)"
-          git config user.name  'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git switch -c "$branch"
-          git commit -am 'build: bump the pinned upstream versions'
-          git push -u origin "$branch"
+            `just verify` downloads both pinned manifests, boots the server and
+            checks the plugin stack, so a green `Check (just verify)` is the
+            proof. Merging does not publish: it lands on `main`, and releasing is
+            a separate run of `release.yaml`: the Sunday cron or a dispatch.
 
-          gh pr create \
-            --title 'build: bump the pinned upstream versions' \
-            --body "$(cat <<'BODY'
-          Upstream moved; the pins in `Dockerfile` no longer match it.
-
-          ```
-          ${{ needs.resolve.outputs.pins_summary }}
-          ```
-
-          `scripts/resolve-upstream.py` found the difference and
-          `scripts/apply-bump.py` rewrote the `ARG` defaults and the matching
-          rows in `docs/architecture.md`.
-
-          - **Valve**: `GAME_MANIFEST` (depot 222861, the game) and
-            `LAUNCHER_MANIFEST` (depot 222863, which is where `srcds_run`
-            lives). The entrypoint downloads both on the first start of a
-            volume, and re-downloads when either one changes.
-          - **l4dtoolz**: the newest stable release carrying a
-            `l4dtoolz-<version>-<build>.zip`.
-          - **5+ plugins**: the head commit of
-            [fbef0102/L4D1_2-Plugins](https://github.com/fbef0102/L4D1_2-Plugins).
-          - **No-Steam-logon bypass**: the newest release shipping a
-            `modified-plugins-sm-1.12-<date>.zip`.
-
-          `just verify` downloads both pinned manifests, boots the server and
-          checks the plugin stack, so a green `Check (just verify)` is the
-          proof. Merging does not publish: it lands on `main`, and releasing is
-          a separate run of `release.yaml`: the Sunday cron or a dispatch.
-
-          MetaMod and SourceMod are not pinned and need nothing here. The
-          current drops on `${{ needs.resolve.outputs.sourcemod_branch }}` are
-          `${{ needs.resolve.outputs.mmsource_drop }}` and
-          `${{ needs.resolve.outputs.sourcemod_drop }}`.
-          BODY
-          )"
+            MetaMod and SourceMod are not pinned and need nothing here. The
+            current drops on `${{ needs.resolve.outputs.sourcemod_branch }}` are
+            `${{ needs.resolve.outputs.mmsource_drop }}` and
+            `${{ needs.resolve.outputs.sourcemod_drop }}`.
 
   report:
     # Runs whether or not anything was stale: this is the record of where the
